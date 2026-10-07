@@ -1,16 +1,10 @@
-# 🌿 HydroMonitor S3 — Sistema de Monitoramento Hidropônico Embarcado
-
-O **HydroMonitor S3** é um sistema de telemetria e monitoramento local de baixo custo desenvolvido para sistemas hidropônicos horizontais e verticais. O projeto utiliza um microcontrolador **ESP32-S3** integrado a sensores de vazão, temperatura e nível líquido para prevenir falhas críticas no fornecimento de solução nutritiva.
-
----
+Sistema de telemetria e monitoramento local de baixo custo desenvolvido para sistemas hidropônicos horizontais e verticais. O projeto utiliza um microcontrolador **ESP32-S3** integrado a sensores de vazão, temperatura e nível líquido para prevenir falhas críticas no fornecimento de solução nutritiva.
 
 ## 📸 Contexto e Motivação
 
 O projeto foi concebido após um incidente real de falha mecânica na bomba de circulação durante uma ausência prolongada, resultando na perda total da cultura hidropônica por desidratação. 
 
 Para eliminar esse ponto único de falha (*Single Point of Failure*), foi desenvolvida uma arquitetura de monitoramento ativo capaz de validar o fluxo de água, checar a temperatura da solução e alertar sobre o nível crítico do reservatório em tempo real.
-
----
 
 ## 📐 Arquitetura Hidráulica e Estrutural
 
@@ -32,64 +26,15 @@ Para garantir uma instalação vedada, modular e de fácil manutenção, foi des
    * Um prensa-cabos no cap garante a passagem estanque do sensor de temperatura **DS18B20**.
    * O sensor capacitivo de nível **XKC-Y25-V** é colado na parede interna do cap, detectando a ausência de líquido no limite inferior de operação.
 
----
-
 ## ⚡ Arquitetura Eletrônica e Hardware
 
 O processamento e controle da instrumentação são centralizados no microcontrolador **ESP32-S3**.
-
-### Especificações dos Componentes
-
-| Componente | Tipo / Modelo | Função no Sistema | Interface / Protocolo |
-| :--- | :--- | :--- | :--- |
-| **Microcontrolador** | ESP32-S3 | Aquisição de dados, lógica e alertas | Wi-Fi / BLE / GPIO |
-| **Sensor de Vazão** | YF-S201 | Validação de fluxo e detecção de pane na bomba | Sinal Pulsado (Efeito Hall) |
-| **Sensor de Nível** | XKC-Y25-V | Sinalização de nível crítico no reservatório | Digital (HIGH / LOW) |
-| **Sensor de Temp.** | DS18B20 | Leitura da temperatura da solução nutritiva | Digital (1-Wire) |
-| **Conectividade** | Cabo Comando (20 vias) | Interconexão entre reservatório e gabinete | Analógico / Digital |
-| **Interface Mecânica** | Conector ATX 24 Pinos | Desconexão rápida do painel do controlador | Plug-and-play |
-| **Gabinete** | Impressão 3D | Alojamento do ESP32-S3 e proteção contra umidade | Customizado |
-
----
-
-## 🔄 Fluxo de Operação
-
-```
-  +------------------------------------------------------------------+
-  |                     RESERVATÓRIO (50 Litros)                     |
-  |                                                                  |
-  |   +-------------------+      +-------------------------------+   |
-  |   |  Bomba SB2700     | ---> | Sensor de Vazão (YF-S201)     |   |
-  |   +-------------------+      +-------------------------------+   |
-  |   |  Sensor de Nível  |      | Sensor Temp. (DS18B20)        |   |
-  |   |  (XKC-Y25-V)      |      |                               |   |
-  |   +-------------------+      +-------------------------------+   |
-  +-------------------------------------+----------------------------+
-                                        |
-                            Cabo Comando (20 Vias)
-                             Conector ATX 24 Pinos
-                                        |
-                                        v
-                            +-----------------------+
-                            |     ESP32-S3 MCU      |
-                            |                       |
-                            | - Validação de Fluxo  |
-                            | - Leitura de Temp.    |
-                            | - Alerta de Nível     |
-                            +-----------------------+
-```
-
----
 
 ## 🛠️ Montagem e Manutenção
 
 1. **Modularidade:** O uso do conector **ATX de 24 pinos** permite desacoplar totalmente o reservatório da unidade central de processamento (ESP32-S3) sem a necessidade de dessoldar cabos durante rotinas de limpeza ou troca de solução.
 2. **Proteção Estrutural:** Peças customizadas foram desenvolvidas em **Impressora 3D** para acomodação da eletrônica de controle e suporte dos conectores de passagem.
 
----
+Em caso de pane, o sistema me alerta cia bot do Telegram.
 
-## 🚀 Próximos Passos (Roadmap)
-
-- [ ] Integração com broker MQTT (Home Assistant / Node-RED).
-- [ ] Implementação de notificações via Telegram/WhatsApp em caso de falta de fluxo.
-- [ ] Inclusão de sensores adicionais (pH e Condutividade Elétrica - EC).
+Uma página web foi criada para controlar as configurações do sistema.
