@@ -15,7 +15,8 @@ com **(confirme)** são suposições minhas: corrija ou apague.
   para a localização da horta. Pode diferir do que a horta sente de verdade.
 - Não há sensor de pH nem de condutividade (EC). Não opine sobre pH/EC como se fossem
   medidos; no máximo, sugira conferir manualmente quando fizer sentido.
-- A horta fica ao ar livre, mas o reservatório com solução nutritiva é fechado e a água da chuva não entra  / Horta e reservatório ficam na varanda, sujeita ao sol e à chuva.
+- A horta e o reservatório ficam na varanda, expostos ao sol. O reservatório é fechado: a
+  chuva não entra na solução e não a dilui. Só as plantas e os canais ficam sujeitos à chuva.
 - Sistema NFT (canais com lâmina fina de solução).
 
 ## Culturas e faixas de referência
