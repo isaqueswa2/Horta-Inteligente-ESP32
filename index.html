@@ -355,7 +355,9 @@ select.seletor { border: 0; background: transparent; color: var(--label-2); text
   }
   body.na-resumo #v-resumo { flex: 1; display: flex; flex-direction: column; gap: 10px; }
   body.na-resumo #v-resumo > * { margin: 0 !important; }
-  body.na-resumo .cabecalho > div { width: 100%; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: baseline; }
+  body.na-resumo .cabecalho > div { width: 100%; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: baseline; gap: 12px; }
+  body.na-resumo .cabecalho .sobre { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.na-resumo .cabecalho h1 { flex-shrink: 0; }
   body.na-resumo .cabecalho h1 { font-size: 30px; }
   body.na-resumo .grade.quatro { flex: 1; grid-template-rows: 1fr 1fr; gap: 10px; }
   body.na-resumo .tile { min-height: 0; }
@@ -378,6 +380,35 @@ select.seletor { border: 0; background: transparent; color: var(--label-2); text
   body.na-resumo .tile .valor { font-size: 26px; margin-top: 6px; }
 }
 
+/* Telas bem baixas (fonte do sistema aumentada dá zoom na página e encolhe a área útil) */
+@media (max-width: 679px) and (max-height: 700px) {
+  body.na-resumo .app { padding-top: calc(env(safe-area-inset-top) + 8px); padding-bottom: calc(env(safe-area-inset-bottom) + 92px); }
+  body.na-resumo #v-resumo, body.na-resumo .grade.quatro { gap: 8px; }
+  body.na-resumo .cabecalho h1 { font-size: 24px; }
+  body.na-resumo .card { padding: 10px 12px; }
+  body.na-resumo .status { gap: 10px; }
+  body.na-resumo .status .icone { width: 32px; height: 32px; }
+  body.na-resumo .status .icone svg { width: 18px; height: 18px; }
+  body.na-resumo .status h3 { font-size: 16px; }
+  body.na-resumo .status p { -webkit-line-clamp: 1; font-size: 13px; }
+  body.na-resumo .bomba { gap: 14px; }
+  body.na-resumo .anel { width: 62px; height: 62px; }
+  body.na-resumo .anel .centro svg { width: 24px; height: 24px; }
+  body.na-resumo .bomba .rotulo { font-size: 11px; }
+  body.na-resumo .bomba .estado { font-size: 21px; margin-top: 0; }
+  body.na-resumo .bomba .detalhe { font-size: 13px; margin-top: 0; }
+  body.na-resumo .linha-tempo { margin-top: 10px; padding-top: 8px; }
+  body.na-resumo .linha-tempo .topo { font-size: 12px; margin-bottom: 5px; }
+  body.na-resumo .faixa { height: 14px; }
+  body.na-resumo .faixa-eixo { font-size: 10px; margin-top: 3px; }
+  body.na-resumo .tile { padding: 10px 11px 9px; }
+  body.na-resumo .tile .cab { font-size: 12px; }
+  body.na-resumo .tile .valor { font-size: 23px; margin-top: 5px; }
+  body.na-resumo .tile .valor small { font-size: 13px; }
+  body.na-resumo .tile .sub { font-size: 12px; margin-top: 2px; }
+  body.na-resumo .tile .spark { min-height: 16px; flex-basis: 16px; padding-top: 6px; }
+}
+
 /* ---------- Indicador de rolagem (celular) ---------- */
 /* O Chrome no Android não mostra barra de rolagem fixa nem deixa estilizá-la:
    este trilho aparece enquanto a página rola, some depois e pode ser arrastado. */
@@ -389,6 +420,8 @@ select.seletor { border: 0; background: transparent; color: var(--label-2); text
     opacity: 0; pointer-events: none; transition: opacity .35s; touch-action: none;
   }
   .rolagem.on { opacity: 1; pointer-events: auto; transition: opacity .12s; }
+  html { scrollbar-width: none; }               /* esconde a barra nativa do Chrome: fica só o indicador */
+  html::-webkit-scrollbar { display: none; }
   .rolagem .polegar { position: absolute; right: 3px; top: 0; width: 4px; min-height: 36px; border-radius: 3px; background: var(--label-3); transition: width .15s, background .15s; }
   .rolagem.arrastando .polegar { width: 7px; background: var(--label-2); }
 }
@@ -733,6 +766,7 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
       <div class="linha"><div class="txt">Ligado há</div><div class="val" id="infoUptime">--</div></div>
       <div class="linha"><div class="txt">Histórico</div><div class="val" id="infoHist">--</div></div>
       <div class="linha"><div class="txt">Sinal WiFi</div><div class="val" id="infoRssi">--</div></div>
+      <div class="linha"><div class="txt"><div>Tela</div><div class="s">área visível deste aparelho</div></div><div class="val" id="infoTela">--</div></div>
       <div class="linha"><div class="txt"><div>Memória livre</div><div class="s">mínimo desde que ligou</div></div><div class="val" id="infoHeap">--</div></div>
       <div class="linha"><div class="txt"><div>Volta mais lenta do loop</div><div class="s">último minuto · inclui atender o painel</div></div><div class="val" id="infoVolta">--</div></div>
       <button class="linha botao-linha" id="btnInstalar" hidden>Instalar como app</button>
@@ -1004,7 +1038,15 @@ function atualizarRolagem(mostrar) {
   rolagemTimer = setTimeout(() => { if (!arrasteRolagem) r.classList.remove('on'); }, 1500);
 }
 window.addEventListener('scroll', () => atualizarRolagem(true), { passive: true });
-window.addEventListener('resize', () => atualizarRolagem(false));
+window.addEventListener('resize', () => { atualizarRolagem(false); mostrarTela(); });
+
+// Área visível real (CSS px) e a escala: ajuda a ajustar o layout para cada celular
+function mostrarTela() {
+  const zoom = window.visualViewport ? Math.round(window.visualViewport.scale * 100) : 100;
+  $('infoTela').textContent = Math.round(innerWidth) + ' × ' + Math.round(innerHeight) + ' · ' + devicePixelRatio.toFixed(2) + 'x'
+    + (zoom !== 100 ? ' · zoom ' + zoom + '%' : '');
+}
+mostrarTela();
 $('rolagem').addEventListener('pointerdown', e => {
   const m = medirRolagem();
   const topoTrilho = $('rolagem').getBoundingClientRect().top;
