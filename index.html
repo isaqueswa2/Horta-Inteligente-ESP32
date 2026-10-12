@@ -340,6 +340,32 @@ select.seletor { border: 0; background: transparent; color: var(--label-2); text
 .aviso .bola { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 .aviso.erro .bola { background: var(--red); }
 
+/* ---------- Insights (IA) ---------- */
+.ic-secao { width: 22px; height: 22px; color: var(--blue); }
+.ins-topo { display: flex; align-items: center; gap: 10px; }
+.ins-topo b { font-size: 17px; }
+.ins-topo .humor { width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.ins-topo .humor[data-humor="atencao"] { background: var(--orange); }
+.ins-topo .humor[data-humor="alerta"] { background: var(--red); }
+.ins-topo .quando { margin-left: auto; font-size: 13px; color: var(--label-2); text-align: right; }
+.ins-resumo { font-size: 16px; line-height: 1.4; margin-top: 8px; }
+.ins-ctx { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.ins-ctx:empty { display: none; }
+.chip { font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 12px; background: var(--fill); color: var(--label-2); white-space: nowrap; }
+.ev.ins { cursor: pointer; }
+.ev.ins .texto { font-size: 14px; line-height: 1.38; color: var(--label); margin-top: 3px; }
+.ev.ins .det { display: none; font-size: 12px; color: var(--label-2); margin-top: 7px; padding-top: 7px; border-top: 0.5px solid var(--sep); }
+.ev.ins.aberto .det { display: block; }
+.ev .ic.gray { background: var(--gray); }
+.ev.ins .tit { align-items: flex-start; }
+.tend-seta { width: 28px; font-size: 20px; font-weight: 700; text-align: center; flex-shrink: 0; color: var(--label-2); }
+.tend-seta.sobe { color: var(--orange); }
+.tend-seta.desce { color: var(--blue); }
+.ins-acoes-tit { font-size: 13px; font-weight: 700; color: var(--label-2); text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 8px; }
+.ins-acoes { padding-left: 20px; font-size: 15px; line-height: 1.4; }
+.ins-acoes li + li { margin-top: 6px; }
+.ev.ins.antigo .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 /* ---------- Resumo sem rolagem (celular em pé) ---------- */
 /* A aba ocupa exatamente a altura visível: os mini-gráficos esticam ou encolhem.
    Se nem o tamanho mínimo couber (celular deitado), a página volta a rolar. */
@@ -464,6 +490,8 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
     <symbol id="i-energia" viewBox="0 0 24 24"><path d="M12 3.5v8M7.2 6.5a7 7 0 1 0 9.6 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
     <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M6 12.6a9 9 0 0 1 12 0M9.5 16.2a4 4 0 0 1 5 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="19.5" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3.5 5 6v5.5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 8.5v4.5M12 15.8v.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-brilho" viewBox="0 0 24 24"><path d="M10 3.5 11.8 9l5.5 1.8-5.5 1.8L10 18l-1.8-5.4L2.7 10.8 8.2 9zM18 3v4M16 5h4M18.5 14v3.5M16.8 15.7h3.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-lua" viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
     <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
   </defs>
 </svg>
@@ -540,6 +568,30 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
   <!-- ===================== GRÁFICOS ===================== -->
   <section class="view" id="v-graficos" data-titulo="Gráficos">
     <div class="cabecalho"><div><div class="sobre">Histórico</div><h1>Gráficos</h1></div></div>
+
+    <!-- Insights gerados por IA (só aparecem quando existem) -->
+    <div id="blocoInsights" hidden>
+      <div class="secao" style="margin-top:0"><span style="display:flex;align-items:center;gap:8px"><svg class="ic-secao"><use href="#i-brilho"/></svg>Insights</span><small id="insQuando"></small></div>
+      <div class="card aviso-seguro" id="insVelho" hidden style="margin-bottom:12px">
+        <div class="ic"><svg><use href="#i-exclama"/></svg></div>
+        <div><b>Insights desatualizados</b><p id="insVelhoTxt"></p></div>
+      </div>
+      <div class="card">
+        <div class="ins-topo"><span class="humor" id="insHumorPonto" data-humor="bom"></span><b id="insHumor">--</b><span class="quando" id="insTurno"></span></div>
+        <p class="ins-resumo" id="insResumo"></p>
+        <div class="ins-ctx" id="insCtx"></div>
+      </div>
+      <div class="grupo" style="margin-top:12px" id="grupoInsights"><ul class="ev-lista" id="listaInsights"></ul></div>
+      <div class="grupo" style="margin-top:12px" id="grupoTend" hidden></div>
+      <div class="card" style="margin-top:12px" id="cardAcoes" hidden>
+        <div class="ins-acoes-tit">O que fazer</div>
+        <ol class="ins-acoes" id="listaAcoes"></ol>
+      </div>
+      <p class="rodape-secao">Gerado por IA a partir dos sensores, do clima e da previsão. Pode errar: confira antes de agir. Toque em um item para ver os números usados.</p>
+      <button class="cab-acao" id="btnAnteriores" style="margin:4px 16px 0">Ver anteriores</button>
+      <div class="grupo" id="grupoAnteriores" hidden style="margin-top:8px"><ul class="ev-lista" id="listaAnteriores"></ul></div>
+      <div class="secao">Histórico</div>
+    </div>
 
     <div class="segmentado" id="faixaSel" role="tablist">
       <div class="pilula"></div>
@@ -931,6 +983,10 @@ function marcarPresenca() {
 function ligarNuvem() {
   db.ref('.info/serverTimeOffset').on('value', s => { desvioRelogio = s.val() || 0; });
   db.ref('horta/doEsp/estado').on('value', s => { estadoNuvem = s.val(); });
+  db.ref('horta/insights/ultimo').on('value', s => {
+    insightsUltimo = s.val();
+    if (!insightAntigo) desenharInsights(insightsUltimo);
+  }, () => {});
   marcarPresenca();
   setInterval(marcarPresenca, 20000);
   document.addEventListener('visibilitychange', marcarPresenca);
@@ -1004,7 +1060,7 @@ function irPara(aba, rolar) {
   $('topoTitulo').textContent = $('v-' + aba).dataset.titulo;
   if (history.replaceState) history.replaceState(null, '', '#' + aba);
   if (rolar !== false) window.scrollTo(0, 0);
-  if (aba === 'graficos') carregarHistorico();
+  if (aba === 'graficos') { carregarHistorico(); if (!MODO_NUVEM) carregarInsightsLocal(); }
   if (aba === 'solucao') carregarSolucoes();
   if (aba === 'alertas') abrirAlertas();
   requestAnimationFrame(redesenharTudo);
@@ -2107,6 +2163,184 @@ $('btnSalvar').addEventListener('click', async () => {
     avisar('Ajustes salvos');
   } catch (err) { avisar(err.message, true); }
   b.disabled = false;
+});
+
+// ================================================================
+// INSIGHTS (IA)
+// ================================================================
+// Gerados no GitHub Actions duas vezes por dia (manhã e noite) e gravados no Firebase.
+// O texto vem de uma IA: entra na página sempre como TEXTO (nunca como HTML).
+let insightsUltimo = null, insightsHistorico = null, insightAntigo = false;
+const ICONE_INS = { temperatura: 'i-termo', vazao: 'i-onda', agua: 'i-tanque', clima: 'i-sol', bomba: 'i-helice', culturas: 'i-gota', sistema: 'i-escudo', curiosidade: 'i-lua' };
+const COR_INS = { alerta: 'red', atencao: 'orange', info: 'blue' };
+const HUMOR_TXT = { bom: 'Tudo tranquilo', atencao: 'Pontos de atenção', alerta: 'Precisa de ação' };
+const SETA_INS = { subindo: ['↗', 'sobe'], estavel: ['→', ''], caindo: ['↘', 'desce'] };
+const NOME_TURNO = { manha: 'manhã', noite: 'noite' };
+const INSIGHT_VELHO_H = 20;
+
+function elem(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt !== undefined && txt !== null) e.textContent = txt;
+  return e;
+}
+function listaDe(x) { return Array.isArray(x) ? x.filter(Boolean) : (x && typeof x === 'object' ? Object.values(x).filter(Boolean) : []); }
+function dataBR(iso) {
+  const p = String(iso || '').split('-').map(Number);
+  if (p.length !== 3 || p.some(isNaN)) return '';
+  const dt = new Date(p[0], p[1] - 1, p[2]), hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dif = Math.round((hoje - dt) / 86400000);
+  if (dif === 0) return 'Hoje';
+  if (dif === 1) return 'Ontem';
+  if (dif === -1) return 'Amanhã';
+  return semPonto(fmtSemana.format(dt)) + ' ' + String(p[2]).padStart(2, '0') + '/' + String(p[1]).padStart(2, '0');
+}
+function rotuloInsight(d) { return dataBR(d.dataLocal) + ' · ' + (d.hora || '') + ' · ' + (NOME_TURNO[d.turno] || d.turno || ''); }
+function geradoEmMs(d) { return d.geradoEm || Date.parse(d.geradoEmLocal) || 0; }
+
+function chipsInsight(d) {
+  const ctx = $('insCtx');
+  ctx.innerHTML = '';
+  const c = d.contexto || {};
+  listaDe(c.clima).slice(0, 3).forEach(x => {
+    if (x.tmax === undefined || x.tmin === undefined) return;
+    let t = dataBR(x.data) + ' ' + Math.round(x.tmin) + '–' + Math.round(x.tmax) + ' °C';
+    if (x.chuva_mm >= 1) t += ' · ' + num(x.chuva_mm, 0) + ' mm';
+    ctx.appendChild(elem('span', 'chip', t));
+  });
+  if (d.previsaoReabastecimento && d.previsaoReabastecimento.data) {
+    ctx.appendChild(elem('span', 'chip', 'Mínimo do reservatório ~' + dataBR(d.previsaoReabastecimento.data) + ' (estimativa)'));
+  }
+  if (c.lua && c.lua.fase) ctx.appendChild(elem('span', 'chip', 'Lua ' + c.lua.fase + ' · ' + c.lua.iluminacao_pct + '%'));
+}
+
+function desenharInsights(d) {
+  const bloco = $('blocoInsights');
+  if (!d) {
+    // Só no painel online faz sentido esperar insights; no ESP32 local a seção some
+    bloco.hidden = !MODO_NUVEM;
+    if (!MODO_NUVEM) return;
+    $('insHumorPonto').dataset.humor = 'bom';
+    $('insHumor').textContent = 'Aguardando a primeira análise';
+    $('insTurno').textContent = '';
+    $('insResumo').textContent = 'Os insights são gerados todos os dias, de manhã e à noite.';
+    ['insCtx', 'listaInsights', 'listaAcoes'].forEach(i => { $(i).innerHTML = ''; });
+    $('grupoInsights').hidden = $('grupoTend').hidden = $('cardAcoes').hidden = $('insVelho').hidden = true;
+    $('insQuando').textContent = '';
+    return;
+  }
+  bloco.hidden = false;
+  const humor = HUMOR_TXT[d.humor] ? d.humor : 'atencao';
+  $('insHumorPonto').dataset.humor = humor;
+  $('insHumor').textContent = HUMOR_TXT[humor];
+  $('insTurno').textContent = rotuloInsight(d);
+  $('insResumo').textContent = d.resumo || '';
+  chipsInsight(d);
+
+  // Aviso quando a geração parou (só para o mais recente)
+  const idadeH = (Date.now() + desvioRelogio - geradoEmMs(d)) / 3600000;
+  $('insVelho').hidden = insightAntigo || !(idadeH > INSIGHT_VELHO_H);
+  if (!$('insVelho').hidden) $('insVelhoTxt').textContent = 'A última análise foi gerada há ' + duracao(idadeH * 3600, true) + '. Confira a execução agendada no GitHub (aba Actions).';
+
+  const q = $('insQuando');
+  q.innerHTML = '';
+  if (insightAntigo) {
+    const b = elem('button', 'cab-acao', 'Voltar ao mais recente');
+    b.style.fontSize = '15px';
+    b.addEventListener('click', () => { insightAntigo = false; desenharInsights(insightsUltimo); });
+    q.appendChild(b);
+  }
+
+  // Insights
+  const ul = $('listaInsights');
+  ul.innerHTML = '';
+  const itens = listaDe(d.insights);
+  $('grupoInsights').hidden = !itens.length;
+  itens.forEach(i => {
+    const li = elem('li', 'ev ins');
+    const ic = elem('div', 'ic ' + (i.categoria === 'curiosidade' ? 'gray' : (COR_INS[i.severidade] || 'blue')));
+    const svg = document.createElementNS(NS, 'svg'), use = document.createElementNS(NS, 'use');
+    use.setAttribute('href', '#' + (ICONE_INS[i.categoria] || 'i-sino'));
+    svg.appendChild(use); ic.appendChild(svg);
+    const corpo = elem('div', 'corpo');
+    const tit = elem('div', 'tit'); tit.appendChild(elem('span', '', i.titulo));
+    corpo.appendChild(tit);
+    corpo.appendChild(elem('div', 'texto', i.texto));
+    const det = elem('div', 'det');
+    det.textContent = (i.dados ? 'Dados: ' + i.dados + ' · ' : '') + 'confiança ' + (i.confianca || 'média');
+    corpo.appendChild(det);
+    li.appendChild(ic); li.appendChild(corpo);
+    li.addEventListener('click', () => li.classList.toggle('aberto'));
+    ul.appendChild(li);
+  });
+
+  // Tendências
+  const tend = listaDe(d.tendencias), gt = $('grupoTend');
+  gt.innerHTML = '';
+  gt.hidden = !tend.length;
+  tend.forEach(t => {
+    const seta = SETA_INS[t.direcao] || SETA_INS.estavel;
+    const l = elem('div', 'linha');
+    l.appendChild(elem('div', 'tend-seta ' + seta[1], seta[0]));
+    const txt = elem('div', 'txt');
+    txt.appendChild(elem('div', '', t.metrica));
+    txt.appendChild(elem('div', 's', t.texto));
+    l.appendChild(txt);
+    gt.appendChild(l);
+  });
+
+  // Ações
+  const acoes = listaDe(d.acoes);
+  $('cardAcoes').hidden = !acoes.length;
+  $('listaAcoes').innerHTML = '';
+  acoes.forEach(a => $('listaAcoes').appendChild(elem('li', '', a)));
+}
+
+async function carregarInsightsLocal() {
+  try {
+    const r = await api('/api/insights');
+    if (!r.ok) throw new Error();
+    const j = await r.json();
+    insightsUltimo = j.ultimo || null;
+    insightsHistorico = j.historico || null;
+    if (!insightAntigo) desenharInsights(insightsUltimo);
+  } catch (e) { $('blocoInsights').hidden = true; }
+}
+
+async function listarAnteriores() {
+  if (MODO_NUVEM) {
+    const snap = await db.ref('horta/insights/historico').orderByKey().limitToLast(28).once('value');
+    insightsHistorico = snap.val();
+  }
+  const ul = $('listaAnteriores');
+  ul.innerHTML = '';
+  const chaves = Object.keys(insightsHistorico || {}).sort().reverse();
+  if (!chaves.length) { ul.appendChild(elem('li', 'vazio-card', 'Ainda não há análises anteriores.')); return; }
+  chaves.forEach(k => {
+    const d = insightsHistorico[k];
+    const li = elem('li', 'ev ins antigo');
+    const ic = elem('div', 'ic ' + (COR_INS[d.humor === 'alerta' ? 'alerta' : d.humor === 'atencao' ? 'atencao' : 'info'] || 'blue'));
+    const svg = document.createElementNS(NS, 'svg'), use = document.createElementNS(NS, 'use');
+    use.setAttribute('href', '#i-brilho'); svg.appendChild(use); ic.appendChild(svg);
+    const corpo = elem('div', 'corpo');
+    const tit = elem('div', 'tit'); tit.appendChild(elem('span', '', rotuloInsight(d)));
+    corpo.appendChild(tit);
+    corpo.appendChild(elem('div', 'sub', d.resumo || ''));
+    li.appendChild(ic); li.appendChild(corpo);
+    li.addEventListener('click', () => {
+      insightAntigo = k !== (insightsUltimo && (insightsUltimo.dataLocal + '_' + insightsUltimo.turno));
+      desenharInsights(d);
+      $('blocoInsights').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    ul.appendChild(li);
+  });
+}
+$('btnAnteriores').addEventListener('click', async () => {
+  const g = $('grupoAnteriores');
+  g.hidden = !g.hidden;
+  $('btnAnteriores').textContent = g.hidden ? 'Ver anteriores' : 'Ocultar anteriores';
+  if (!g.hidden) { try { await listarAnteriores(); } catch (e) { avisar('Não foi possível carregar as análises anteriores', true); } }
 });
 
 // ================================================================
