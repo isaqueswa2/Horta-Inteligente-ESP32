@@ -1,1 +1,45 @@
+name: Insights da horta
+
+# Duas execuções por dia (horários em UTC; o Brasil está em UTC-3, sem horário de verão):
+#   10:17 UTC = 07:17 em Brasília  (insights da manhã)
+#   00:17 UTC = 21:17 em Brasília  (balanço da noite)
+# O GitHub pode atrasar execuções agendadas em alguns minutos nos horários de pico.
+on:
+  schedule:
+    - cron: '17 10 * * *'
+    - cron: '17 0 * * *'
+  workflow_dispatch:
+    inputs:
+      turno:
+        description: 'Turno (vazio = pelo horário)'
+        required: false
+        type: choice
+        options: ['', manha, noite]
+
+concurrency:
+  group: insights-horta
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Gerar insights
+        run: python insights/gerar_insights.py
+        env:
+          INSIGHTS_EMAIL: ${{ secrets.INSIGHTS_EMAIL }}
+          INSIGHTS_SENHA: ${{ secrets.INSIGHTS_SENHA }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HORTA_LAT: ${{ secrets.HORTA_LAT }}
+          HORTA_LON: ${{ secrets.HORTA_LON }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          TURNO: ${{ inputs.turno }}
 
