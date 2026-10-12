@@ -340,6 +340,59 @@ select.seletor { border: 0; background: transparent; color: var(--label-2); text
 .aviso .bola { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 .aviso.erro .bola { background: var(--red); }
 
+/* ---------- Resumo sem rolagem (celular em pé) ---------- */
+/* A aba ocupa exatamente a altura visível: os mini-gráficos esticam ou encolhem.
+   Se nem o tamanho mínimo couber (celular deitado), a página volta a rolar. */
+.status p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#cardSeguro { cursor: pointer; }
+@media (max-width: 679px) {
+  body.na-resumo .topbar { display: none; }
+  body.na-resumo .app {
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column;
+    padding-top: calc(env(safe-area-inset-top) + 12px);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 96px);   /* barra de abas: 14 + 70 + 12 de folga */
+  }
+  body.na-resumo #v-resumo { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  body.na-resumo #v-resumo > * { margin: 0 !important; }
+  body.na-resumo .cabecalho > div { width: 100%; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: baseline; }
+  body.na-resumo .cabecalho h1 { font-size: 30px; }
+  body.na-resumo .grade.quatro { flex: 1; grid-template-rows: 1fr 1fr; gap: 10px; }
+  body.na-resumo .tile { min-height: 0; }
+  body.na-resumo .tile .spark { flex: 1 1 22px; height: auto; min-height: 22px; max-height: 80px; contain: size; }   /* o SVG não impõe altura */
+}
+/* Telas mais baixas (navegador com a barra de endereço): tudo um pouco mais justo */
+@media (max-width: 679px) and (max-height: 780px) {
+  body.na-resumo .card { padding: 13px 14px; }
+  body.na-resumo .status .icone { width: 38px; height: 38px; }
+  body.na-resumo .status h3 { font-size: 18px; }
+  body.na-resumo .status p { font-size: 14px; }
+  body.na-resumo .anel { width: 76px; height: 76px; }
+  body.na-resumo .anel .centro svg { width: 28px; height: 28px; }
+  body.na-resumo .bomba .estado { font-size: 24px; }
+  body.na-resumo .bomba .detalhe { font-size: 14px; }
+  body.na-resumo .linha-tempo { margin-top: 12px; padding-top: 10px; }
+  body.na-resumo .linha-tempo .topo { margin-bottom: 6px; }
+  body.na-resumo .faixa { height: 18px; }
+  body.na-resumo .tile { padding: 12px 12px 10px; }
+  body.na-resumo .tile .valor { font-size: 26px; margin-top: 6px; }
+}
+
+/* ---------- Indicador de rolagem (celular) ---------- */
+/* O Chrome no Android não mostra barra de rolagem fixa nem deixa estilizá-la:
+   este trilho aparece enquanto a página rola, some depois e pode ser arrastado. */
+.rolagem { display: none; }
+@media (pointer: coarse) {
+  .rolagem {
+    display: block; position: fixed; right: 0; width: 20px; z-index: 25;
+    top: calc(env(safe-area-inset-top) + 8px); bottom: calc(env(safe-area-inset-bottom) + 92px);
+    opacity: 0; pointer-events: none; transition: opacity .35s; touch-action: none;
+  }
+  .rolagem.on { opacity: 1; pointer-events: auto; transition: opacity .12s; }
+  .rolagem .polegar { position: absolute; right: 3px; top: 0; width: 4px; min-height: 36px; border-radius: 3px; background: var(--label-3); transition: width .15s, background .15s; }
+  .rolagem.arrastando .polegar { width: 7px; background: var(--label-2); }
+}
+
 /* ---------- Login (modo nuvem) ---------- */
 .login { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: grid; place-items: center; padding: 24px 16px calc(env(safe-area-inset-bottom) + 24px); overflow-y: auto; }
 .login[hidden] { display: none; }
@@ -392,7 +445,7 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
       <div><div class="sobre" id="hoje">Horta</div><h1>Resumo</h1></div>
     </div>
 
-    <div class="card aviso-seguro" id="cardSeguro" hidden style="margin-bottom:12px">
+    <div class="card aviso-seguro" id="cardSeguro" data-ir="ajustes" hidden style="margin-bottom:12px">
       <div class="ic"><svg><use href="#i-escudo"/></svg></div>
       <div><b id="seguroTitulo">Modo seguro</b><p id="seguroTexto"></p></div>
     </div>
@@ -402,7 +455,6 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
         <div class="icone"><svg><use href="#i-check"/></svg></div>
         <div><h3 id="statusTitulo">Conectando…</h3><p id="statusSub">Buscando dados da horta</p></div>
       </div>
-      <ul class="alertas" id="alertas" hidden></ul>
     </div>
 
     <div class="card">
@@ -703,6 +755,7 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
 </nav>
 
 <div class="aviso" id="aviso"><span class="bola"></span><span id="avisoTxt"></span></div>
+<div class="rolagem" id="rolagem" aria-hidden="true"><div class="polegar" id="polegar"></div></div>
 
 <div class="login" id="telaLogin" hidden>
   <form id="formLogin" autocomplete="on">
@@ -911,6 +964,7 @@ let abaAtual = 'resumo';
 function irPara(aba, rolar) {
   if (!ABAS.includes(aba)) aba = 'resumo';
   abaAtual = aba;
+  document.body.classList.toggle('na-resumo', aba === 'resumo');
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('ativa', v.id === 'v-' + aba));
   document.querySelectorAll('#abas button').forEach(b => b.classList.toggle('ativa', b.dataset.aba === aba));
   $('topoTitulo').textContent = $('v-' + aba).dataset.titulo;
@@ -925,6 +979,55 @@ document.querySelectorAll('#abas button').forEach(b => b.addEventListener('click
 document.querySelectorAll('[data-ir]').forEach(t => t.addEventListener('click', () => irPara(t.dataset.ir)));
 window.addEventListener('hashchange', () => { const a = location.hash.slice(1); if (a !== abaAtual) irPara(a); });
 window.addEventListener('scroll', () => $('topbar').classList.toggle('on', window.scrollY > 40), { passive: true });
+
+// ---------------- Indicador de rolagem ----------------
+// Aparece enquanto a página rola e some depois de 1,5 s, como nos apps.
+// Arrastar o polegar pula direto para qualquer ponto da página.
+let rolagemTimer, arrasteRolagem = null;
+function medirRolagem() {
+  const total = document.documentElement.scrollHeight, vis = window.innerHeight;
+  const trilho = $('rolagem').clientHeight;
+  const alt = Math.max(36, trilho * vis / total);
+  return { total, vis, trilho, alt, cabe: total <= vis + 1 };
+}
+function atualizarRolagem(mostrar) {
+  const r = $('rolagem');
+  if (!r.clientHeight) return;   // só existe em telas de toque
+  const m = medirRolagem();
+  if (m.cabe) { r.classList.remove('on'); return; }
+  const pos = (m.trilho - m.alt) * Math.min(1, window.scrollY / (m.total - m.vis));
+  $('polegar').style.height = m.alt + 'px';
+  $('polegar').style.transform = 'translateY(' + pos + 'px)';
+  if (!mostrar) return;
+  r.classList.add('on');
+  clearTimeout(rolagemTimer);
+  rolagemTimer = setTimeout(() => { if (!arrasteRolagem) r.classList.remove('on'); }, 1500);
+}
+window.addEventListener('scroll', () => atualizarRolagem(true), { passive: true });
+window.addEventListener('resize', () => atualizarRolagem(false));
+$('rolagem').addEventListener('pointerdown', e => {
+  const m = medirRolagem();
+  const topoTrilho = $('rolagem').getBoundingClientRect().top;
+  const pos = (m.trilho - m.alt) * window.scrollY / (m.total - m.vis);
+  // Tocou no polegar: arrasta mantendo o ponto de contato. Tocou no trilho: centraliza ali.
+  const noPolegar = e.clientY - topoTrilho >= pos && e.clientY - topoTrilho <= pos + m.alt;
+  arrasteRolagem = { desvio: noPolegar ? e.clientY - topoTrilho - pos : m.alt / 2, topoTrilho };
+  $('rolagem').classList.add('arrastando');
+  $('rolagem').setPointerCapture(e.pointerId);
+  moverRolagem(e);
+});
+function moverRolagem(e) {
+  if (!arrasteRolagem) return;
+  const m = medirRolagem();
+  const frac = (e.clientY - arrasteRolagem.topoTrilho - arrasteRolagem.desvio) / (m.trilho - m.alt);
+  window.scrollTo(0, Math.max(0, Math.min(1, frac)) * (m.total - m.vis));
+}
+$('rolagem').addEventListener('pointermove', moverRolagem);
+['pointerup', 'pointercancel'].forEach(t => $('rolagem').addEventListener(t, () => {
+  arrasteRolagem = null;
+  $('rolagem').classList.remove('arrastando');
+  atualizarRolagem(true);   // some 1,5 s depois de soltar
+}));
 
 // ---------------- Controle segmentado ----------------
 let faixaMin = 1440;
@@ -1229,7 +1332,7 @@ function graficoBarras(box, cfg) {
 // Mini-gráfico dos mosaicos
 function sparkline(box, valores, cor) {
   box.innerHTML = '';
-  const W = Math.max(box.clientWidth, 60), H = 26;
+  const W = Math.max(box.clientWidth, 60), H = Math.max(box.clientHeight - 8, 18);   // 8 = padding-top da caixa
   const v = valores.map((x, i) => [i, x]).filter(p => p[1] !== null);
   if (v.length < 2) return;
   let lo = Math.min(...v.map(p => p[1])), hi = Math.max(...v.map(p => p[1]));
@@ -1290,17 +1393,14 @@ function aplicarDados(d) {
   const panes = d.panes || [];
   // Status geral
   if (d.modoManutencao) definirStatus('orange', 'i-chave', 'Modo manutenção', 'Alertas e detecção de panes suspensos');
-  else if (panes.length) definirStatus('red', 'i-exclama', panes.length === 1 ? 'Atenção' : panes.length + ' alertas', panes.length === 1 ? panes[0] : 'Verifique a lista abaixo');
+  else if (panes.length) definirStatus('red', 'i-exclama', panes.length === 1 ? 'Atenção' : panes.length + ' alertas',
+    panes.length === 1 ? panes[0] : panes.slice(0, 2).join(' · ') + (panes.length > 2 ? ' · +' + (panes.length - 2) : ''));
   else {
     const recentes = panesRecentes(86400);
     definirStatus('green', 'i-check', 'Tudo funcionando', recentes
       ? recentes + (recentes === 1 ? ' pane resolvida' : ' panes resolvidas') + ' nas últimas 24 h'
       : 'Atualizado às ' + fmtHora.format(new Date()));
   }
-  const ul = $('alertas');
-  ul.hidden = !(panes.length > 1 && !d.modoManutencao);
-  ul.innerHTML = '';
-  if (!ul.hidden) panes.forEach(p => { const li = document.createElement('li'); li.textContent = p; ul.appendChild(li); });
 
   // Bomba
   const st = d.tomadaStatus, seg = d.tomadaSeg || 0;
@@ -1353,9 +1453,9 @@ function aplicarDados(d) {
   $('cardSeguro').hidden = !seguro;
   if (seguro) {
     $('seguroTitulo').textContent = 'Modo seguro' + (seguro >= 2 ? ' (nível 2)' : '');
-    $('seguroTexto').textContent = 'A horta travou ' + d.diag.falhasBoot + ' vezes seguidas ao iniciar. Nesta sessão o OLED'
-      + (seguro >= 2 ? ', o histórico e a central de alertas ficam' : ' fica') + ' desativado'
-      + '. O monitoramento, o painel e o Telegram seguem funcionando. Em Ajustes › Dispositivo, “Reiniciar horta” tenta o modo normal.';
+    // Curto para caber no Resumo; o toque leva a Ajustes, onde “Reiniciar horta” tenta o modo normal
+    $('seguroTexto').textContent = 'Travou ' + d.diag.falhasBoot + ' vezes ao iniciar · '
+      + (seguro >= 2 ? 'OLED, histórico e alertas desligados' : 'OLED desligado') + ' · toque para reiniciar';
   }
   if (d.diag) {
     const rssi = d.diag.rssi;
