@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Horta">
 <title>Horta</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icone-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root {
   color-scheme: light dark;
@@ -68,7 +71,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overscroll-behavior-x: none; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   background: var(--bg);
@@ -78,6 +81,8 @@ body {
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  min-height: 100dvh;   /* no Android, 100vh ignora a barra de endereço e sobra rolagem */
+  overflow-x: clip;     /* nada pode alargar a página (clip, ao contrário de hidden, não quebra o sticky) */
 }
 button, input, select { font: inherit; color: inherit; }
 .num { font-variant-numeric: tabular-nums; }
@@ -90,7 +95,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 .topbar {
   position: sticky; top: 0; z-index: 20;
-  margin: 0 -16px; padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;   /* fica fora do .app: sem margem negativa */
   display: flex; align-items: center; justify-content: center;
   background: var(--glass);
   -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
@@ -286,12 +291,12 @@ select.seletor { border: 0; background: transparent; color: var(--label-2); text
 /* ---------- Barra de abas flutuante ---------- */
 .abas {
   position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 14px); transform: translateX(-50%); z-index: 30;
-  display: flex; gap: 2px; padding: 5px;
+  display: flex; gap: 2px; padding: 5px; max-width: calc(100vw - 16px);
   background: var(--glass); border: 0.5px solid var(--glass-border); border-radius: 32px;
   -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
   box-shadow: 0 8px 32px rgba(0,0,0,.12);
 }
-.abas button { position: relative; border: 0; background: transparent; border-radius: 26px; width: 66px; padding: 7px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 600; color: var(--label-2); cursor: pointer; transition: color .2s, background .25s; }
+.abas button { position: relative; border: 0; background: transparent; border-radius: 26px; width: 66px; flex: 0 1 66px; min-width: 0; padding: 7px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 600; color: var(--label-2); cursor: pointer; transition: color .2s, background .25s; }
 .abas button svg { width: 24px; height: 24px; }
 .abas button.ativa { color: var(--blue); background: var(--fill); }
 .abas .selo { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--card); }
@@ -678,6 +683,7 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
       <div class="linha"><div class="txt">Sinal WiFi</div><div class="val" id="infoRssi">--</div></div>
       <div class="linha"><div class="txt"><div>Memória livre</div><div class="s">mínimo desde que ligou</div></div><div class="val" id="infoHeap">--</div></div>
       <div class="linha"><div class="txt"><div>Volta mais lenta do loop</div><div class="s">último minuto · inclui atender o painel</div></div><div class="val" id="infoVolta">--</div></div>
+      <button class="linha botao-linha" id="btnInstalar" hidden>Instalar como app</button>
       <button class="linha botao-linha perigo" id="btnLimparEventos">Limpar central de alertas</button>
       <button class="linha botao-linha perigo" id="btnReiniciar">Reiniciar horta</button>
       <button class="linha botao-linha" id="btnSair" hidden>Sair da conta</button>
@@ -1962,6 +1968,30 @@ $('btnSalvar').addEventListener('click', async () => {
 });
 
 // ================================================================
+// APP INSTALÁVEL (PWA)
+// ================================================================
+// Só no GitHub Pages (https): o ESP32 serve http, onde o Chrome não instala apps.
+let pedidoInstalacao = null;
+if (location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();   // em vez da faixa automática do Chrome, o botão em Ajustes
+  pedidoInstalacao = e;
+  $('btnInstalar').hidden = false;
+});
+window.addEventListener('appinstalled', () => {
+  pedidoInstalacao = null;
+  $('btnInstalar').hidden = true;
+  avisar('App instalado na tela inicial');
+});
+$('btnInstalar').addEventListener('click', async () => {
+  if (!pedidoInstalacao) return;
+  pedidoInstalacao.prompt();
+  await pedidoInstalacao.userChoice;
+  pedidoInstalacao = null;
+  $('btnInstalar').hidden = true;
+});
+
+// ================================================================
 // INÍCIO
 // ================================================================
 $('hoje').textContent = semPonto(fmtDataLonga.format(new Date()));
@@ -1970,7 +2000,9 @@ function iniciarPainel() {
   cicloDados();
   carregarSolucoes();
   carregarResumoHistorico();
-  setInterval(carregarResumoHistorico, 60000);
+  // Com a aba oculta, nada de pedidos: na nuvem eles manteriam o ESP32 no modo rápido
+  setInterval(() => { if (!document.hidden) carregarResumoHistorico(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) carregarResumoHistorico(); });
   setInterval(() => { if (abaAtual === 'graficos' && !document.hidden) carregarHistorico(); }, 60000);
   setInterval(() => { if (!document.hidden) carregarSolucoes(); }, 300000);
   setInterval(() => { if (abaAtual === 'alertas' && !document.hidden) desenharEventos(); }, 30000);
