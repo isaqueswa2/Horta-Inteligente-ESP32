@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Horta">
+<title>Horta</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #F2F2F7;
+  --card: #FFFFFF;
+  --card-2: #F2F2F7;
+  --label: #000000;
+  --label-2: rgba(60, 60, 67, 0.62);
+  --label-3: rgba(60, 60, 67, 0.32);
+  --sep: rgba(60, 60, 67, 0.14);
+  --fill: rgba(120, 120, 128, 0.12);
+  --fill-2: rgba(120, 120, 128, 0.2);
+  --glass: rgba(249, 249, 251, 0.72);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --green: #34C759;
+  --green-ink: #248A3D;
+  --red: #FF3B30;
+  --orange: #FF9500;
+  --blue: #007AFF;
+  --gray: #8E8E93;
+  /* séries dos gráficos (validadas para daltonismo) */
+  --s-sol: #007AFF;
+  --s-amb: #E07800;
+  --s-flu: #0088A3;
+  --s-bomba: #2DA44E;
+  --grid: rgba(60, 60, 67, 0.1);
+  --r-card: 20px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card: #1C1C1E;
+    --card-2: #2C2C2E;
+    --label: #FFFFFF;
+    --label-2: rgba(235, 235, 245, 0.62);
+    --label-3: rgba(235, 235, 245, 0.3);
+    --sep: rgba(84, 84, 88, 0.55);
+    --fill: rgba(118, 118, 128, 0.24);
+    --fill-2: rgba(118, 118, 128, 0.36);
+    --glass: rgba(30, 30, 32, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --shadow: none;
+    --green: #30D158;
+    --green-ink: #30D158;
+    --red: #FF453A;
+    --orange: #FF9F0A;
+    --blue: #0A84FF;
+    --gray: #98989D;
+    --s-sol: #0A84FF;
+    --s-amb: #DB7700;
+    --s-flu: #1AA5C0;
+    --s-bomba: #30B85A;
+    --grid: rgba(235, 235, 245, 0.1);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  background: var(--bg);
+  color: var(--label);
+  font-size: 17px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+button, input, select { font: inherit; color: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Estrutura ---------- */
+.app {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 112px);
+}
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  margin: 0 -16px; padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid transparent;
+  opacity: 0; pointer-events: none; transition: opacity .2s, border-color .2s;
+}
+.topbar.on { opacity: 1; pointer-events: auto; border-bottom-color: var(--sep); }
+.topbar h2 { font-size: 17px; font-weight: 600; }
+.cabecalho { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: -36px 0 16px; padding-top: 6px; }
+.cabecalho .sobre { font-size: 13px; font-weight: 600; color: var(--label-2); text-transform: uppercase; letter-spacing: 0.02em; }
+.cabecalho h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.view { display: none; animation: surgir .28s ease; }
+.view.ativa { display: block; }
+@keyframes surgir { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.secao { margin: 28px 4px 8px; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; display: flex; justify-content: space-between; align-items: baseline; }
+.secao small { font-size: 15px; font-weight: 400; color: var(--label-2); letter-spacing: 0; }
+.rodape-secao { margin: 8px 16px 0; font-size: 13px; color: var(--label-2); }
+
+.card { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 16px; }
+.card + .card { margin-top: 12px; }
+.grade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+@media (min-width: 680px) { .grade.quatro { grid-template-columns: repeat(4, 1fr); } }
+
+/* ---------- Status ---------- */
+.status { display: flex; align-items: center; gap: 14px; }
+.status .icone { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; color: #fff; background: var(--green); transition: background .3s; }
+.status .icone svg { width: 24px; height: 24px; }
+.status h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.status p { font-size: 15px; color: var(--label-2); margin-top: 1px; }
+.status[data-tom="red"] .icone { background: var(--red); }
+.status[data-tom="orange"] .icone { background: var(--orange); }
+.status[data-tom="gray"] .icone { background: var(--gray); }
+.alertas { list-style: none; margin-top: 14px; border-top: 0.5px solid var(--sep); }
+.alertas li { display: flex; align-items: center; gap: 10px; padding: 11px 0; font-size: 15px; border-bottom: 0.5px solid var(--sep); }
+.alertas li:last-child { border-bottom: 0; padding-bottom: 0; }
+.alertas li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+
+/* ---------- Bomba (hero) ---------- */
+.bomba { display: flex; align-items: center; gap: 18px; }
+.anel { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
+.anel svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.anel .trilha { stroke: var(--fill); }
+.anel .progresso { stroke: var(--green); transition: stroke-dashoffset .6s ease, stroke .3s; }
+.anel .centro { position: absolute; inset: 0; display: grid; place-items: center; color: var(--green); transition: color .3s; }
+.anel .centro svg { width: 34px; height: 34px; transform: none; }
+.anel.parada .progresso { stroke: var(--gray); }
+.anel.parada .centro { color: var(--gray); }
+.anel.alerta .progresso { stroke: var(--orange); }
+.anel.alerta .centro { color: var(--orange); }
+.anel.erro .progresso { stroke: var(--red); }
+.anel.erro .centro { color: var(--red); }
+.girando { animation: girar 1.6s linear infinite; transform-origin: 50% 50%; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.bomba .rotulo { font-size: 13px; font-weight: 600; color: var(--label-2); text-transform: uppercase; letter-spacing: 0.02em; }
+.bomba .estado { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-top: 2px; }
+.bomba .detalhe { font-size: 15px; color: var(--label-2); margin-top: 2px; }
+.linha-tempo { margin-top: 16px; padding-top: 14px; border-top: 0.5px solid var(--sep); }
+.linha-tempo .topo { display: flex; justify-content: space-between; font-size: 13px; color: var(--label-2); margin-bottom: 8px; }
+.linha-tempo .topo b { color: var(--label); font-weight: 600; }
+.faixa { height: 22px; border-radius: 6px; background: var(--fill); overflow: hidden; }
+.faixa svg { display: block; width: 100%; height: 100%; }
+.faixa-eixo { display: flex; justify-content: space-between; font-size: 11px; color: var(--label-2); margin-top: 5px; }
+
+/* ---------- Mosaicos ---------- */
+.tile { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 14px 14px 12px; display: flex; flex-direction: column; min-height: 148px; cursor: pointer; transition: transform .15s; }
+.tile:active { transform: scale(0.98); }
+.tile .cab { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.tile .cab svg { width: 16px; height: 16px; }
+.tile .valor { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin-top: 8px; line-height: 1; }
+.tile .valor small { font-size: 15px; font-weight: 600; color: var(--label-2); margin-left: 2px; letter-spacing: 0; }
+.tile .sub { font-size: 13px; color: var(--label-2); margin-top: 4px; }
+.tile .spark { margin-top: auto; height: 34px; padding-top: 8px; }
+.tile .spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.c-sol { color: var(--s-sol); }
+.c-amb { color: var(--s-amb); }
+.c-flu { color: var(--s-flu); }
+.c-bomba { color: var(--s-bomba); }
+.c-ok { color: var(--green-ink); }
+.c-erro { color: var(--red); }
+.c-neutro { color: var(--label-2); }
+
+/* ---------- Controles segmentados ---------- */
+.segmentado { display: flex; background: var(--fill); border-radius: 9px; padding: 2px; position: relative; margin: 4px 0 4px; }
+.segmentado button { flex: 1; border: 0; background: transparent; padding: 6px 0; font-size: 13px; font-weight: 600; border-radius: 7px; cursor: pointer; position: relative; z-index: 1; transition: color .2s; }
+.segmentado .pilula { position: absolute; top: 2px; bottom: 2px; left: 2px; border-radius: 7px; background: var(--card); box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); transition: transform .3s cubic-bezier(.3,.7,.3,1); }
+@media (prefers-color-scheme: dark) { .segmentado .pilula { background: #636366; } }
+
+/* ---------- Gráficos ---------- */
+.grafico-card .titulo { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; }
+.grafico-card .titulo svg { width: 18px; height: 18px; }
+.manchete { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.manchete .item .r { font-size: 12px; font-weight: 600; color: var(--label-2); text-transform: uppercase; letter-spacing: 0.02em; display: flex; align-items: center; gap: 6px; }
+.manchete .item .v { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.manchete .item .v small { font-size: 15px; color: var(--label-2); font-weight: 600; margin-left: 2px; letter-spacing: 0; }
+.manchete .item .p { font-size: 13px; color: var(--label-2); }
+.legenda-ponto { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+.grafico { position: relative; margin-top: 14px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.grafico svg { display: block; width: 100%; overflow: visible; }
+.grafico text { font-size: 11px; fill: var(--label-2); font-family: inherit; }
+.grafico .grade-y { stroke: var(--grid); stroke-width: 1; }
+.grafico .base { stroke: var(--sep); stroke-width: 1; }
+.grafico .ref { stroke: var(--red); stroke-width: 1; stroke-dasharray: 3 3; opacity: .8; }
+.grafico .ref-txt { fill: var(--red); font-weight: 600; }
+.grafico .mira { stroke: var(--label-3); stroke-width: 1; }
+.grafico .vazio { font-size: 15px; fill: var(--label-2); }
+.dica {
+  position: absolute; top: 0; pointer-events: none; z-index: 5;
+  background: var(--card); color: var(--label);
+  border-radius: 10px; padding: 7px 10px; font-size: 12px; line-height: 1.35; white-space: nowrap;
+  box-shadow: 0 6px 24px rgba(0,0,0,.16), 0 0 0 0.5px var(--sep);
+  opacity: 0; transform: translateY(-4px); transition: opacity .12s, transform .12s;
+}
+.dica.on { opacity: 1; transform: none; }
+.dica .quando { color: var(--label-2); font-weight: 600; margin-bottom: 2px; }
+.dica .lin { display: flex; align-items: center; gap: 6px; }
+.dica .lin b { font-weight: 600; margin-left: auto; padding-left: 12px; font-variant-numeric: tabular-nums; }
+.estat { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 14px; border-top: 0.5px solid var(--sep); padding-top: 12px; }
+.estat > div { padding: 0 8px; border-left: 0.5px solid var(--sep); }
+.estat > div:first-child { border-left: 0; padding-left: 0; }
+.estat .r { font-size: 12px; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.estat .v { font-size: 17px; font-weight: 600; margin-top: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- Solução ---------- */
+.solucao-hero { text-align: center; padding: 22px 16px 18px; }
+.solucao-hero .anel { width: 168px; height: 168px; margin: 0 auto; }
+.solucao-hero .anel .progresso { stroke: var(--s-flu); }
+.solucao-hero .anel .centro { color: var(--label); }
+.solucao-hero .anel .centro div { text-align: center; }
+.solucao-hero .idade { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.solucao-hero .idade-r { font-size: 13px; color: var(--label-2); margin-top: 4px; }
+.solucao-hero h3 { font-size: 17px; font-weight: 600; margin-top: 14px; }
+.solucao-hero p { font-size: 15px; color: var(--label-2); margin-top: 2px; }
+
+/* ---------- Listas agrupadas (Ajustes) ---------- */
+.grupo { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); overflow: hidden; }
+.linha { display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 48px; position: relative; }
+.linha + .linha::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 0.5px; background: var(--sep); }
+.linha .txt { flex: 1; min-width: 0; }
+.linha .txt .s { font-size: 13px; color: var(--label-2); margin-top: 2px; }
+.linha .val { color: var(--label-2); font-variant-numeric: tabular-nums; }
+.linha.bloco { display: block; }
+.linha.bloco .topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.linha.bloco .topo .val { color: var(--blue); font-weight: 600; }
+.botao-linha { width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; color: var(--blue); }
+.botao-linha:active { background: var(--fill); }
+.botao-linha.perigo { color: var(--red); }
+
+.chave { position: relative; width: 51px; height: 31px; flex-shrink: 0; }
+.chave input { opacity: 0; width: 0; height: 0; position: absolute; }
+.chave span { position: absolute; inset: 0; border-radius: 31px; background: var(--fill-2); transition: background .25s; cursor: pointer; }
+.chave span::before { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 3px 1px rgba(0,0,0,.06); transition: transform .25s cubic-bezier(.3,.7,.3,1); }
+.chave input:checked + span { background: var(--green); }
+.chave input:checked + span::before { transform: translateX(20px); }
+.chave input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; margin-top: 6px; cursor: pointer; --p: 50%; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--blue) var(--p), var(--fill-2) var(--p)); }
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--fill-2); }
+input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--blue); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #fff; margin-top: -12px; box-shadow: 0 0.5px 4px rgba(0,0,0,.12), 0 6px 13px rgba(0,0,0,.12); border: 0.5px solid rgba(0,0,0,.04); }
+input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 0.5px 4px rgba(0,0,0,.12), 0 6px 13px rgba(0,0,0,.12); }
+
+select.seletor { border: 0; background: transparent; color: var(--label-2); text-align: right; cursor: pointer; -webkit-appearance: none; appearance: none; padding-right: 16px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: right 6px center, right 1px center; background-size: 5px 5px; background-repeat: no-repeat; }
+
+.ciclo-barra { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; margin-top: 10px; }
+.ciclo-barra .on { background: var(--s-bomba); border-radius: 4px; transition: flex-grow .3s; }
+.ciclo-barra .off { background: var(--fill-2); border-radius: 4px; transition: flex-grow .3s; }
+.ciclo-legenda { display: flex; justify-content: space-between; font-size: 12px; color: var(--label-2); margin-top: 6px; }
+
+.botao { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border: 0; border-radius: 14px; padding: 14px 16px; font-size: 17px; font-weight: 600; cursor: pointer; background: var(--blue); color: #fff; transition: transform .12s, opacity .2s; }
+.botao:active { transform: scale(0.98); opacity: .85; }
+.botao.verde { background: var(--green); }
+.botao.cinza { background: var(--fill); color: var(--blue); }
+.botao svg { width: 20px; height: 20px; }
+.botao[disabled] { opacity: .45; pointer-events: none; }
+
+.lista-sol { list-style: none; }
+.lista-sol li { display: flex; align-items: center; gap: 12px; padding: 12px 16px; position: relative; }
+.lista-sol li + li::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 0.5px; background: var(--sep); }
+.lista-sol .datas { flex: 1; }
+.lista-sol .datas .s { font-size: 13px; color: var(--label-2); margin-top: 1px; }
+.lista-sol .dur { font-weight: 600; font-variant-numeric: tabular-nums; }
+.etiqueta { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 6px; border-radius: 5px; background: var(--fill); color: var(--label-2); margin-left: 6px; vertical-align: 2px; }
+.etiqueta.verde { background: rgba(52,199,89,.16); color: var(--green-ink); }
+
+.bolha-tg { background: var(--card-2); border-radius: 16px 16px 16px 4px; padding: 10px 12px 18px; position: relative; max-width: 100%; }
+.bolha-tg .tg-texto { font-size: 14px; line-height: 1.42; white-space: pre-wrap; word-break: break-word; }
+.bolha-tg .tg-texto code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; background: var(--fill); border-radius: 4px; padding: 0 3px; }
+.bolha-tg .hora-tg { position: absolute; right: 10px; bottom: 5px; font-size: 11px; color: var(--label-2); }
+.vazio-card { text-align: center; color: var(--label-2); font-size: 15px; padding: 28px 16px; }
+
+/* ---------- Barra de abas flutuante ---------- */
+.abas {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 14px); transform: translateX(-50%); z-index: 30;
+  display: flex; gap: 2px; padding: 5px;
+  background: var(--glass); border: 0.5px solid var(--glass-border); border-radius: 32px;
+  -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
+  box-shadow: 0 8px 32px rgba(0,0,0,.12);
+}
+.abas button { position: relative; border: 0; background: transparent; border-radius: 26px; width: 66px; padding: 7px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 600; color: var(--label-2); cursor: pointer; transition: color .2s, background .25s; }
+.abas button svg { width: 24px; height: 24px; }
+.abas button.ativa { color: var(--blue); background: var(--fill); }
+.abas .selo { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--card); }
+.abas .selo[hidden] { display: none; }
+
+/* ---------- Central de alertas ---------- */
+.cab-acao { border: 0; background: none; color: var(--blue); font-size: 17px; cursor: pointer; padding: 4px 0; }
+.cab-acao[disabled] { color: var(--label-3); cursor: default; }
+.ev-lista { list-style: none; }
+.ev { display: flex; gap: 12px; padding: 12px 16px; position: relative; align-items: flex-start; }
+.ev + .ev::before { content: ""; position: absolute; top: 0; left: 60px; right: 0; height: 0.5px; background: var(--sep); }
+.ev .ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; color: #fff; background: var(--gray); }
+.ev .ic svg { width: 18px; height: 18px; }
+.ev .ic.red { background: var(--red); }
+.ev .ic.orange { background: var(--orange); }
+.ev .ic.teal { background: var(--s-flu); }
+.ev .ic.blue { background: var(--blue); }
+.ev .ic.green { background: var(--green); }
+.ev .corpo { flex: 1; min-width: 0; }
+.ev .tit { font-size: 15px; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+.ev .tit .hora { font-size: 13px; font-weight: 400; color: var(--label-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ev .sub { font-size: 13px; color: var(--label-2); margin-top: 2px; }
+.ev.nova::after { content: ""; position: absolute; left: 5px; top: 26px; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); }
+.ev .vivo { color: var(--red); font-weight: 600; }
+.dia { margin: 22px 4px 8px; font-size: 13px; font-weight: 600; color: var(--label-2); text-transform: uppercase; letter-spacing: 0.02em; }
+.aviso-seguro { display: flex; gap: 12px; align-items: flex-start; background: rgba(255,149,0,.14); border: 0.5px solid rgba(255,149,0,.45); }
+.aviso-seguro .ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; color: #fff; background: var(--orange); }
+.aviso-seguro .ic svg { width: 18px; height: 18px; }
+.aviso-seguro b { font-size: 15px; }
+.aviso-seguro p { font-size: 13px; color: var(--label-2); margin-top: 2px; }
+.resumo-alertas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.resumo-alertas .r { font-size: 12px; color: var(--label-2); }
+.resumo-alertas .v { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resumo-alertas .v.pequeno { font-size: 15px; font-weight: 600; line-height: 1.25; white-space: normal; margin-top: 4px; }
+
+.salvar-flutuante { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 92px); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: all .3s cubic-bezier(.3,.7,.3,1); z-index: 29; width: min(420px, calc(100% - 32px)); box-shadow: 0 8px 28px rgba(0,122,255,.35); }
+.salvar-flutuante.on { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+
+.aviso { position: fixed; top: calc(env(safe-area-inset-top) + 12px); left: 50%; transform: translate(-50%, -140%); z-index: 50; background: var(--card); color: var(--label); padding: 12px 18px; border-radius: 22px; font-size: 15px; font-weight: 600; box-shadow: 0 10px 40px rgba(0,0,0,.18), 0 0 0 0.5px var(--sep); transition: transform .4s cubic-bezier(.3,.7,.3,1); display: flex; align-items: center; gap: 8px; max-width: calc(100% - 32px); }
+.aviso.on { transform: translate(-50%, 0); }
+.aviso .bola { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.aviso.erro .bola { background: var(--red); }
+
+/* ---------- Login (modo nuvem) ---------- */
+.login { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: grid; place-items: center; padding: 24px 16px calc(env(safe-area-inset-bottom) + 24px); overflow-y: auto; }
+.login[hidden] { display: none; }
+.login form { width: min(380px, 100%); }
+.login .marca { width: 64px; height: 64px; border-radius: 16px; background: var(--green); color: #fff; display: grid; place-items: center; margin: 0 auto 16px; }
+.login .marca svg { width: 34px; height: 34px; }
+.login h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; text-align: center; }
+.login .sub { font-size: 15px; color: var(--label-2); text-align: center; margin: 6px 0 24px; }
+.login .grupo { margin-bottom: 16px; }
+.login input { width: 100%; border: 0; background: transparent; color: var(--label); font: inherit; font-size: 17px; padding: 0; outline: none; }
+.login input::placeholder { color: var(--label-3); }
+.login .erro-login { color: var(--red); font-size: 14px; text-align: center; min-height: 20px; margin-top: 12px; }
+body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-casa" viewBox="0 0 24 24"><path d="M3.5 10.2 12 3.5l8.5 6.7V19a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 19z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-grafico" viewBox="0 0 24 24"><path d="M3 20.5h18M6.5 17V11M11 17V5.5M15.5 17v-8M20 17v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-gota" viewBox="0 0 24 24"><path d="M12 3.2s6.2 6.6 6.2 11.1a6.2 6.2 0 0 1-12.4 0C5.8 9.8 12 3.2 12 3.2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 14.6a3 3 0 0 0 3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-exclama" viewBox="0 0 24 24"><path d="M12 6v8" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><circle cx="12" cy="18.2" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="i-chave" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17v3h3l5.5-5.5a4 4 0 0 0 5.2-5.2l-2.5 2.5-2.5-.5-.5-2.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-semrede" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M6 12.6a9 9 0 0 1 12 0M9.5 16.2a4 4 0 0 1 5 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-helice" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 10c-1-3-.5-6 1.5-6.5S16 6 12 10zM14 12c3-1 6-.5 6.5 1.5S18 16 14 12zM12 14c1 3 .5 6-1.5 6.5S8 18 12 14zM10 12c-3 1-6 .5-6.5-1.5S6 8 10 12z" fill="currentColor"/></symbol>
+    <symbol id="i-termo" viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="17" r="1.8" fill="currentColor"/></symbol>
+    <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-onda" viewBox="0 0 24 24"><path d="M3 8c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1M3 13c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1M3 18c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-tanque" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 13c2-1.3 4.5-1.3 6.5 0s4.5 1.3 6.5 0V17a3 3 0 0 1-3 3h-7a3 3 0 0 1-3-3z" fill="currentColor"/></symbol>
+    <symbol id="i-sino" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-energia" viewBox="0 0 24 24"><path d="M12 3.5v8M7.2 6.5a7 7 0 1 0 9.6 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M6 12.6a9 9 0 0 1 12 0M9.5 16.2a4 4 0 0 1 5 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="19.5" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3.5 5 6v5.5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 8.5v4.5M12 15.8v.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="topbar" id="topbar"><h2 id="topoTitulo">Resumo</h2></div>
+
+<main class="app">
+
+  <!-- ===================== RESUMO ===================== -->
+  <section class="view" id="v-resumo" data-titulo="Resumo">
+    <div class="cabecalho">
+      <div><div class="sobre" id="hoje">Horta</div><h1>Resumo</h1></div>
+    </div>
+
+    <div class="card aviso-seguro" id="cardSeguro" hidden style="margin-bottom:12px">
+      <div class="ic"><svg><use href="#i-escudo"/></svg></div>
+      <div><b id="seguroTitulo">Modo seguro</b><p id="seguroTexto"></p></div>
+    </div>
+
+    <div class="card">
+      <div class="status" id="status" data-tom="green">
+        <div class="icone"><svg><use href="#i-check"/></svg></div>
+        <div><h3 id="statusTitulo">Conectando…</h3><p id="statusSub">Buscando dados da horta</p></div>
+      </div>
+      <ul class="alertas" id="alertas" hidden></ul>
+    </div>
+
+    <div class="card">
+      <div class="bomba">
+        <div class="anel parada" id="anelBomba">
+          <svg viewBox="0 0 100 100"><circle class="trilha" cx="50" cy="50" r="44" fill="none" stroke-width="10"/><circle class="progresso" id="arcoBomba" cx="50" cy="50" r="44" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="276.46"/></svg>
+          <div class="centro"><svg id="heliceBomba"><use href="#i-helice"/></svg></div>
+        </div>
+        <div>
+          <div class="rotulo">Bomba</div>
+          <div class="estado" id="bombaEstado">--</div>
+          <div class="detalhe" id="bombaDetalhe"></div>
+        </div>
+      </div>
+      <div class="linha-tempo">
+        <div class="topo"><span>Últimas 6 horas</span><span><b id="bombaPct6h">--</b> ligada</span></div>
+        <div class="faixa" id="faixaBomba"></div>
+        <div class="faixa-eixo" id="faixaEixo"><span>−6 h</span><span>−4 h</span><span>−2 h</span><span>agora</span></div>
+      </div>
+    </div>
+
+    <div class="grade quatro">
+      <div class="tile" data-ir="graficos">
+        <div class="cab c-sol"><svg><use href="#i-termo"/></svg>Solução</div>
+        <div class="valor num" id="tSol">--<small>°C</small></div>
+        <div class="sub" id="tSolSub">&nbsp;</div>
+        <div class="spark" id="sparkSol"></div>
+      </div>
+      <div class="tile" data-ir="graficos">
+        <div class="cab c-amb"><svg><use href="#i-sol"/></svg>Ambiente</div>
+        <div class="valor num" id="tAmb">--<small>°C</small></div>
+        <div class="sub" id="tAmbSub">&nbsp;</div>
+        <div class="spark" id="sparkAmb"></div>
+      </div>
+      <div class="tile" data-ir="graficos">
+        <div class="cab c-flu"><svg><use href="#i-onda"/></svg>Vazão</div>
+        <div class="valor num" id="fluxo">--<small>L/min</small></div>
+        <div class="sub" id="fluxoSub">&nbsp;</div>
+        <div class="spark" id="sparkFlu"></div>
+      </div>
+      <div class="tile" data-ir="solucao">
+        <div class="cab c-flu"><svg><use href="#i-tanque"/></svg>Reservatório</div>
+        <div class="valor" id="nivel" style="font-size:24px">--</div>
+        <div class="sub" id="nivelSub">&nbsp;</div>
+        <div class="spark" style="display:flex;align-items:flex-end"><div style="width:100%"><div class="faixa" style="height:6px;border-radius:3px"><div id="nivelBarra" style="height:100%;width:0;background:var(--s-flu);border-radius:3px;transition:width .5s"></div></div><div class="sub" id="nivelBarraTxt" style="margin-top:5px">&nbsp;</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== GRÁFICOS ===================== -->
+  <section class="view" id="v-graficos" data-titulo="Gráficos">
+    <div class="cabecalho"><div><div class="sobre">Histórico</div><h1>Gráficos</h1></div></div>
+
+    <div class="segmentado" id="faixaSel" role="tablist">
+      <div class="pilula"></div>
+      <button data-min="360" role="tab">6 H</button>
+      <button data-min="1440" role="tab">24 H</button>
+      <button data-min="10080" role="tab">7 D</button>
+    </div>
+
+    <div class="card grafico-card" style="margin-top:12px">
+      <div class="titulo c-bomba"><svg><use href="#i-helice"/></svg>Bomba</div>
+      <div class="manchete">
+        <div class="item"><div class="r">Tempo ligada</div><div class="v num" id="gBombaPct">--</div><div class="p" id="gBombaPctSub">&nbsp;</div></div>
+        <div class="item"><div class="r">Tomada online</div><div class="v num" id="gOnline">--</div><div class="p">disponibilidade</div></div>
+      </div>
+      <div class="grafico" id="gBomba"></div>
+      <div class="estat">
+        <div><div class="r">Ciclos</div><div class="v" id="gCiclos">--</div></div>
+        <div><div class="r">Duração média</div><div class="v" id="gCicloMed">--</div></div>
+        <div><div class="r">Mais curto/longo</div><div class="v" id="gCicloFaixa">--</div></div>
+      </div>
+    </div>
+
+    <div class="card grafico-card">
+      <div class="titulo c-flu"><svg><use href="#i-onda"/></svg>Vazão</div>
+      <div class="manchete">
+        <div class="item"><div class="r">Média com a bomba ligada</div><div class="v num" id="gFluMed">--</div><div class="p" id="gFluSub">&nbsp;</div></div>
+      </div>
+      <div class="grafico" id="gFluxo"></div>
+      <div class="rodape-secao" style="margin:10px 0 0">Linha: média · faixa sombreada: mínima e máxima · tracejado: vazão mínima aceitável</div>
+    </div>
+
+    <div class="card grafico-card">
+      <div class="titulo" style="color:var(--label)"><svg class="c-sol"><use href="#i-termo"/></svg>Temperatura</div>
+      <div class="manchete">
+        <div class="item"><div class="r"><span class="legenda-ponto" style="background:var(--s-sol)"></span>Solução</div><div class="v num" id="gSolMed">--</div><div class="p" id="gSolFaixa">&nbsp;</div></div>
+        <div class="item"><div class="r"><span class="legenda-ponto" style="background:var(--s-amb)"></span>Ambiente</div><div class="v num" id="gAmbMed">--</div><div class="p" id="gAmbFaixa">&nbsp;</div></div>
+        <div class="item"><div class="r">Diferença</div><div class="v num" id="gDelta">--</div><div class="p">ambiente − solução</div></div>
+      </div>
+      <div class="grafico" id="gTemp"></div>
+      <div class="rodape-secao" style="margin:10px 0 0">Médias do período. A solução acompanha o ambiente com atraso; uma diferença que cresce indica reservatório exposto ao sol.</div>
+    </div>
+    <p class="rodape-secao" id="gRodape"></p>
+  </section>
+
+  <!-- ===================== ALERTAS ===================== -->
+  <section class="view" id="v-alertas" data-titulo="Alertas">
+    <div class="cabecalho">
+      <div><div class="sobre">Central</div><h1>Alertas</h1></div>
+      <button class="cab-acao" id="btnLidas">Marcar lidas</button>
+    </div>
+
+    <div class="segmentado" id="filtroEv" role="tablist">
+      <div class="pilula"></div>
+      <button data-f="todos" role="tab">Todos</button>
+      <button data-f="panes" role="tab">Panes</button>
+      <button data-f="sistema" role="tab">Sistema</button>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="resumo-alertas">
+        <div><div class="r">Panes em 7 dias</div><div class="v" id="evQtd7">--</div></div>
+        <div><div class="r">Tempo em pane</div><div class="v" id="evTempo7">--</div></div>
+        <div><div class="r">Mais frequente</div><div class="v pequeno" id="evFreq7">--</div></div>
+      </div>
+    </div>
+
+    <div id="evAtivas"></div>
+    <div id="evLinhaTempo"></div>
+    <p class="rodape-secao" id="evRodape"></p>
+  </section>
+
+  <!-- ===================== SOLUÇÃO ===================== -->
+  <section class="view" id="v-solucao" data-titulo="Solução">
+    <div class="cabecalho"><div><div class="sobre">Reservatório</div><h1>Solução</h1></div></div>
+
+    <div class="card solucao-hero">
+      <div class="anel" id="anelSol">
+        <svg viewBox="0 0 100 100"><circle class="trilha" cx="50" cy="50" r="45" fill="none" stroke-width="7"/><circle class="progresso" id="arcoSol" cx="50" cy="50" r="45" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="282.74" stroke-dashoffset="282.74"/></svg>
+        <div class="centro"><div><div class="idade num" id="solIdade">--</div><div class="idade-r">solução atual</div></div></div>
+      </div>
+      <h3 id="solTitulo">&nbsp;</h3>
+      <p id="solSub">&nbsp;</p>
+    </div>
+
+    <div style="margin-top:12px"><button class="botao verde" id="btnReabastecer"><svg><use href="#i-mais"/></svg>Registrar reabastecimento</button></div>
+    <p class="rodape-secao">Também é registrado sozinho quando o nível sai do mínimo ou quando você destrava o nível depois de completar o tanque.</p>
+
+    <div class="secao">Duração de cada solução <small id="solQtd"></small></div>
+    <div class="card grafico-card">
+      <div class="manchete">
+        <div class="item"><div class="r">Média</div><div class="v num" id="solMedia">--</div></div>
+        <div class="item"><div class="r">Até o mínimo</div><div class="v num" id="solAteMin">--</div></div>
+      </div>
+      <div class="grafico" id="gSolucoes"></div>
+      <div class="estat">
+        <div><div class="r">Mais curta</div><div class="v" id="solMin">--</div></div>
+        <div><div class="r">Mais longa</div><div class="v" id="solMax">--</div></div>
+        <div><div class="r">Bomba / solução</div><div class="v" id="solBomba">--</div></div>
+      </div>
+    </div>
+
+    <div class="secao">Registros</div>
+    <div class="grupo"><ul class="lista-sol" id="listaSol"></ul></div>
+  </section>
+
+  <!-- ===================== AJUSTES ===================== -->
+  <section class="view" id="v-ajustes" data-titulo="Ajustes">
+    <div class="cabecalho"><div><div class="sobre">Horta</div><h1>Ajustes</h1></div></div>
+
+    <div class="grupo">
+      <div class="linha">
+        <div class="txt"><div>Modo manutenção</div><div class="s">Suspende alertas e a detecção de panes</div></div>
+        <label class="chave"><input type="checkbox" id="chkManutencao"><span></span></label>
+      </div>
+      <button class="linha botao-linha" id="btnResetNivel">Destravar alerta de nível</button>
+      <button class="linha botao-linha" id="btnResetBomba">Limpar alertas da bomba</button>
+    </div>
+
+    <div class="secao">Ciclo da bomba</div>
+    <div class="grupo">
+      <div class="linha bloco">
+        <div class="ciclo-barra"><div class="on" id="barOn" style="flex-grow:14"></div><div class="off" id="barOff" style="flex-grow:17"></div></div>
+        <div class="ciclo-legenda"><span>Ligada ≥ <b id="lblMinOn">14 min</b></span><span>Desligada ≤ <b id="lblMaxOff">17 min</b></span></div>
+      </div>
+      <div class="linha bloco">
+        <div class="topo"><span>Tempo mínimo ligada</span><span class="val" id="valMinOn"></span></div>
+        <input type="range" id="rngMinOn" min="1" max="30" step="1" data-un="min">
+        <div class="txt"><div class="s">Desligou antes disso = desligamento precoce</div></div>
+      </div>
+      <div class="linha bloco">
+        <div class="topo"><span>Tempo máximo desligada</span><span class="val" id="valMaxOff"></span></div>
+        <input type="range" id="rngMaxOff" min="5" max="60" step="1" data-un="min">
+        <div class="txt"><div class="s">Desligada além disso = atraso de ciclo</div></div>
+      </div>
+    </div>
+
+    <div class="secao">Tomada × fluxo</div>
+    <div class="grupo">
+      <div class="linha bloco">
+        <div class="topo"><span>Tempo para o fluxo aparecer</span><span class="val" id="valPartida"></span></div>
+        <input type="range" id="rngPartida" min="3" max="30" step="1" data-un="s">
+        <div class="txt"><div class="s">Ligada sem fluxo após esse tempo = bomba sem vazão</div></div>
+      </div>
+      <div class="linha bloco">
+        <div class="topo"><span>Carência após desligar</span><span class="val" id="valCarencia"></span></div>
+        <input type="range" id="rngCarencia" min="5" max="60" step="1" data-un="s">
+        <div class="txt"><div class="s">Fluxo com a tomada desligada após esse tempo = fluxo sem bomba</div></div>
+      </div>
+      <div class="linha bloco">
+        <div class="topo"><span>Vazão mínima aceitável</span><span class="val" id="valVazaoMin"></span></div>
+        <input type="range" id="rngVazaoMin" min="1" max="4.5" step="0.1" data-un="L/min">
+        <div class="txt"><div class="s">Vazão normal ≈ 4,5 L/min</div></div>
+      </div>
+      <div class="linha bloco">
+        <div class="topo"><span>Tempo com vazão baixa</span><span class="val" id="valVazaoBaixa"></span></div>
+        <input type="range" id="rngVazaoBaixa" min="5" max="60" step="1" data-un="s">
+        <div class="txt"><div class="s">Abaixo da mínima por esse tempo = vazão baixa</div></div>
+      </div>
+    </div>
+
+    <div class="secao">Reservatório</div>
+    <div class="grupo">
+      <div class="linha bloco">
+        <div class="topo"><span>Tolerância do sensor de nível</span><span class="val" id="valTolNivel"></span></div>
+        <input type="range" id="rngTolNivel" min="1" max="15" step="1" data-un="s">
+        <div class="txt"><div class="s">Avaliado só com a bomba parada há 60 s (anti-maré)</div></div>
+      </div>
+    </div>
+
+    <div class="secao">Telegram</div>
+    <div class="grupo">
+      <div class="linha">
+        <div class="txt">Repetir alerta de nível</div>
+        <select class="seletor" id="selIntervaloNivel">
+          <option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hora</option>
+        </select>
+      </div>
+      <div class="linha">
+        <div class="txt">Repetir alertas da bomba</div>
+        <select class="seletor" id="selIntervaloFluxo">
+          <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option>
+        </select>
+      </div>
+      <div class="linha">
+        <div class="txt"><div>Relatório a cada hora</div><div class="s">Mensagem silenciosa</div></div>
+        <label class="chave"><input type="checkbox" id="chkNotifHoraria"><span></span></label>
+      </div>
+    </div>
+
+    <div class="secao">Resumo diário</div>
+    <div class="grupo">
+      <div class="linha">
+        <div class="txt"><div>Enviar resumo do dia</div><div class="s">Bomba, vazão, temperaturas, solução e ocorrências das últimas 24 h</div></div>
+        <label class="chave"><input type="checkbox" id="chkResumoDiario"><span></span></label>
+      </div>
+      <div class="linha" id="linhaHoraResumo">
+        <div class="txt">Horário</div>
+        <select class="seletor" id="selHoraResumo"></select>
+      </div>
+      <button class="linha botao-linha" id="btnPreviaResumo">Ver prévia das mensagens</button>
+      <div class="linha bloco" id="previaResumo" hidden>
+        <div class="segmentado" id="previaTipo" style="margin:0 0 10px">
+          <div class="pilula"></div>
+          <button data-t="status">Status</button>
+          <button data-t="alerta">Alerta</button>
+          <button data-t="resolvido">Resolvido</button>
+          <button data-t="resumo">Resumo</button>
+        </div>
+        <div class="linha" id="previaPane" style="padding:0 0 10px;min-height:0" hidden>
+          <div class="txt s" style="margin:0;white-space:nowrap;flex:none">Exemplo</div>
+          <select class="seletor" id="selPanePrevia"></select>
+        </div>
+        <div class="bolha-tg"><div class="tg-texto" id="previaTexto">Carregando…</div><span class="hora-tg" id="previaHora"></span></div>
+      </div>
+      <button class="linha botao-linha" id="btnEnviarResumo">Enviar resumo agora</button>
+    </div>
+    <p class="rodape-secao">Também pelo comando <b>/resumo</b> no Telegram.</p>
+
+    <div class="secao">Dispositivo</div>
+    <div class="grupo">
+      <div class="linha"><div class="txt">Firmware</div><div class="val" id="infoFw">--</div></div>
+      <div class="linha"><div class="txt">Endereço IP</div><div class="val" id="infoIp">--</div></div>
+      <div class="linha"><div class="txt"><div>Nuvem</div><div class="s" id="infoAcesso">acessando pela rede local</div></div><div class="val" id="infoNuvem">--</div></div>
+      <div class="linha"><div class="txt">Ligado há</div><div class="val" id="infoUptime">--</div></div>
+      <div class="linha"><div class="txt">Histórico</div><div class="val" id="infoHist">--</div></div>
+      <div class="linha"><div class="txt">Sinal WiFi</div><div class="val" id="infoRssi">--</div></div>
+      <div class="linha"><div class="txt"><div>Memória livre</div><div class="s">mínimo desde que ligou</div></div><div class="val" id="infoHeap">--</div></div>
+      <div class="linha"><div class="txt"><div>Volta mais lenta do loop</div><div class="s">último minuto · inclui atender o painel</div></div><div class="val" id="infoVolta">--</div></div>
+      <button class="linha botao-linha perigo" id="btnLimparEventos">Limpar central de alertas</button>
+      <button class="linha botao-linha perigo" id="btnReiniciar">Reiniciar horta</button>
+      <button class="linha botao-linha" id="btnSair" hidden>Sair da conta</button>
+    </div>
+    <p class="rodape-secao">Horta Inteligente · ESP32-S3 · também em <b>horta.local</b></p>
+  </section>
+</main>
+
+<button class="botao salvar-flutuante" id="btnSalvar">Salvar alterações</button>
+
+<nav class="abas" id="abas">
+  <button data-aba="resumo"><svg><use href="#i-casa"/></svg>Resumo</button>
+  <button data-aba="graficos"><svg><use href="#i-grafico"/></svg>Gráficos</button>
+  <button data-aba="alertas"><svg><use href="#i-sino"/></svg>Alertas<span class="selo" id="seloAlertas" hidden></span></button>
+  <button data-aba="solucao"><svg><use href="#i-gota"/></svg>Solução</button>
+  <button data-aba="ajustes"><svg><use href="#i-ajustes"/></svg>Ajustes</button>
+</nav>
+
+<div class="aviso" id="aviso"><span class="bola"></span><span id="avisoTxt"></span></div>
+
+<div class="login" id="telaLogin" hidden>
+  <form id="formLogin" autocomplete="on">
+    <div class="marca"><svg><use href="#i-gota"/></svg></div>
+    <h1>Horta</h1>
+    <p class="sub">Entre para acompanhar a horta de qualquer lugar</p>
+    <div class="grupo">
+      <div class="linha"><input type="email" id="loginEmail" placeholder="E-mail" autocomplete="username" required></div>
+      <div class="linha"><input type="password" id="loginSenha" placeholder="Senha" autocomplete="current-password" required></div>
+    </div>
+    <button class="botao" type="submit" id="btnEntrar">Entrar</button>
+    <p class="erro-login" id="erroLogin"></p>
+  </form>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+
+// ---------------- Formatação ----------------
+function num(v, casas) {
+  if (v === null || v === undefined || isNaN(v)) return '--';
+  return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+}
+function duracao(seg, curto) {
+  if (seg === null || seg === undefined || isNaN(seg)) return '--';
+  seg = Math.max(0, Math.round(seg));
+  if (seg < 60) return seg + ' s';
+  const m = Math.floor(seg / 60);
+  if (m < 60) return m + ' min';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' h' + (m % 60 && !curto ? ' ' + (m % 60) + ' min' : '');
+  const d = Math.floor(h / 24);
+  return d + ' d' + (h % 24 ? ' ' + (h % 24) + ' h' : '');
+}
+const fmtHora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const fmtDiaHora = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtData = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' });
+const fmtDataLonga = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+const fmtSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' });
+function semPonto(s) { return s.replace(/\./g, ''); }
+
+// ---------------- Avisos (toast) ----------------
+let avisoTimer;
+function avisar(txt, erro) {
+  const a = $('aviso');
+  $('avisoTxt').textContent = txt;
+  a.classList.toggle('erro', !!erro);
+  a.classList.add('on');
+  clearTimeout(avisoTimer);
+  avisoTimer = setTimeout(() => a.classList.remove('on'), 3200);
+}
+
+// ================================================================
+// TRANSPORTE: rede local (ESP32) ou nuvem (Firebase)
+// ================================================================
+// Servido pelo ESP32 (http://horta.local), o painel fala direto com /api/*.
+// Publicado no GitHub Pages (https), ele não alcança a rede de casa: cada
+// pedido é gravado no Firebase, o ESP32 executa a mesma rota e devolve a
+// resposta (veja processarNuvem no firmware). O /api/data vem do estado que
+// o ESP32 publica sozinho. A config abaixo não é segredo: quem protege os
+// dados são o login e as regras do banco (firebase/database.rules.json).
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyDzuPqq1XixK6Gx5jLvfZBBN0zoWbhFFWQ',
+  authDomain: 'horta-inteligente-3bdaa.firebaseapp.com',
+  databaseURL: 'https://horta-inteligente-3bdaa-default-rtdb.firebaseio.com',
+  projectId: 'horta-inteligente-3bdaa',
+  appId: '1:834111190523:web:aada3fd8a1a6eb1b63475e'
+};
+const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/12.4.0/';
+const MODO_NUVEM = location.protocol === 'https:' || new URLSearchParams(location.search).has('nuvem');
+const TEMPO_PEDIDO_MS = 25000;       // o ESP32 ocioso consulta a cada 5 s; com o painel aberto, a cada 1,5 s
+const ESTADO_VELHO_SEG = 150;        // sem notícia da horta há mais que isso = fora do ar
+let db = null, estadoNuvem = null, desvioRelogio = 0;
+
+function carregarScript(src) {
+  return new Promise((ok, falha) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ok;
+    s.onerror = () => falha(new Error('Não foi possível carregar ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+// Mesmo formato do fetch(): devolve um Response
+async function api(url, opcoes) {
+  if (!MODO_NUVEM) return fetch(url, Object.assign({ cache: 'no-store' }, opcoes));
+  if (url === '/api/data') return respostaEstado();
+  return pedidoNuvem((opcoes && opcoes.method) || 'GET', url);
+}
+
+function idadeEstadoSeg() {
+  if (!estadoNuvem || !estadoNuvem.vistoEm) return null;
+  return Math.max(0, (Date.now() + desvioRelogio - estadoNuvem.vistoEm) / 1000);
+}
+
+function respostaEstado() {
+  if (!estadoNuvem) return new Response('A horta ainda não publicou dados', { status: 503 });
+  // O Firebase não guarda null nem listas vazias: devolve o formato do ESP32
+  const d = Object.assign({ tSol: null, tAmb: null, panes: [] }, estadoNuvem);
+  d.idadeSeg = idadeEstadoSeg();
+  return new Response(JSON.stringify(d), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
+
+function pedidoNuvem(metodo, url) {
+  const ref = db.ref('horta/paraEsp/req').push();
+  const respRef = db.ref('horta/doEsp/resp/' + ref.key);
+  return new Promise((resolver, rejeitar) => {
+    let feito = false, timer;
+    const fim = (resp, erro) => {
+      if (feito) return;
+      feito = true;
+      clearTimeout(timer);
+      respRef.off('value', ouvir);
+      erro ? rejeitar(erro) : resolver(resp);
+    };
+    const ouvir = snap => {
+      const v = snap.val();
+      if (!v) return;
+      respRef.remove().catch(() => {});
+      fim(new Response(v.corpo || '', { status: v.codigo || 200, headers: { 'Content-Type': v.tipo || 'text/plain' } }));
+    };
+    timer = setTimeout(() => {
+      ref.remove().catch(() => {});
+      fim(null, new Error('A horta não respondeu. Ela está ligada e com internet?'));
+    }, TEMPO_PEDIDO_MS);
+    respRef.on('value', ouvir, err => fim(null, err));
+    ref.set({ url, metodo, criado: firebase.database.ServerValue.TIMESTAMP }).catch(err => fim(null, err));
+  });
+}
+
+// Avisa o ESP32 que há alguém olhando: ele passa a responder mais rápido
+function marcarPresenca() {
+  if (db && !document.hidden) db.ref('horta/paraEsp/presenca').set(firebase.database.ServerValue.TIMESTAMP).catch(() => {});
+}
+
+function ligarNuvem() {
+  db.ref('.info/serverTimeOffset').on('value', s => { desvioRelogio = s.val() || 0; });
+  db.ref('horta/doEsp/estado').on('value', s => { estadoNuvem = s.val(); });
+  marcarPresenca();
+  setInterval(marcarPresenca, 20000);
+  document.addEventListener('visibilitychange', marcarPresenca);
+  // Respostas que ficaram para trás (aba fechada antes de chegarem)
+  db.ref('horta/doEsp/resp').once('value').then(s => {
+    const limite = Date.now() + desvioRelogio - 120000;
+    s.forEach(r => { if (!r.val().t || r.val().t < limite) r.ref.remove().catch(() => {}); });
+  }).catch(() => {});
+}
+
+const ERROS_LOGIN = {
+  'auth/invalid-credential': 'E-mail ou senha incorretos',
+  'auth/invalid-login-credentials': 'E-mail ou senha incorretos',
+  'auth/wrong-password': 'E-mail ou senha incorretos',
+  'auth/user-not-found': 'E-mail ou senha incorretos',
+  'auth/invalid-email': 'E-mail inválido',
+  'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
+  'auth/network-request-failed': 'Sem internet no momento',
+  'auth/unauthorized-domain': 'Este endereço não está autorizado no Firebase (Authentication › Settings › Authorized domains)'
+};
+
+// Carrega o Firebase, pede login se preciso e chama 'aoEntrar' uma vez
+async function iniciarNuvem(aoEntrar) {
+  document.body.classList.add('carregando-nuvem');
+  $('telaLogin').hidden = false;
+  try {
+    await carregarScript(FIREBASE_SDK + 'firebase-app-compat.js');
+    await Promise.all([carregarScript(FIREBASE_SDK + 'firebase-auth-compat.js'), carregarScript(FIREBASE_SDK + 'firebase-database-compat.js')]);
+  } catch (e) {
+    $('erroLogin').textContent = 'Sem internet: não foi possível carregar o login.';
+    document.body.classList.remove('carregando-nuvem');
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.database();
+  let iniciado = false;
+  firebase.auth().onAuthStateChanged(usuario => {
+    document.body.classList.remove('carregando-nuvem');
+    $('telaLogin').hidden = !!usuario;
+    if (!usuario) { if (iniciado) location.reload(); return; }
+    if (iniciado) return;
+    iniciado = true;
+    ligarNuvem();
+    aoEntrar();
+  });
+  $('formLogin').addEventListener('submit', async e => {
+    e.preventDefault();
+    $('erroLogin').textContent = '';
+    document.body.classList.add('carregando-nuvem');
+    try {
+      await firebase.auth().signInWithEmailAndPassword($('loginEmail').value.trim(), $('loginSenha').value);
+      $('loginSenha').value = '';
+    } catch (err) {
+      $('erroLogin').textContent = ERROS_LOGIN[err.code] || ('Não foi possível entrar (' + (err.code || err.message) + ')');
+      document.body.classList.remove('carregando-nuvem');
+    }
+  });
+  $('btnSair').hidden = false;
+  $('btnSair').addEventListener('click', () => { if (confirm('Sair da conta neste aparelho?')) firebase.auth().signOut(); });
+}
+
+// ---------------- Navegação ----------------
+const ABAS = ['resumo', 'graficos', 'alertas', 'solucao', 'ajustes'];
+let abaAtual = 'resumo';
+function irPara(aba, rolar) {
+  if (!ABAS.includes(aba)) aba = 'resumo';
+  abaAtual = aba;
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('ativa', v.id === 'v-' + aba));
+  document.querySelectorAll('#abas button').forEach(b => b.classList.toggle('ativa', b.dataset.aba === aba));
+  $('topoTitulo').textContent = $('v-' + aba).dataset.titulo;
+  if (history.replaceState) history.replaceState(null, '', '#' + aba);
+  if (rolar !== false) window.scrollTo(0, 0);
+  if (aba === 'graficos') carregarHistorico();
+  if (aba === 'solucao') carregarSolucoes();
+  if (aba === 'alertas') abrirAlertas();
+  requestAnimationFrame(redesenharTudo);
+}
+document.querySelectorAll('#abas button').forEach(b => b.addEventListener('click', () => irPara(b.dataset.aba)));
+document.querySelectorAll('[data-ir]').forEach(t => t.addEventListener('click', () => irPara(t.dataset.ir)));
+window.addEventListener('hashchange', () => { const a = location.hash.slice(1); if (a !== abaAtual) irPara(a); });
+window.addEventListener('scroll', () => $('topbar').classList.toggle('on', window.scrollY > 40), { passive: true });
+
+// ---------------- Controle segmentado ----------------
+let faixaMin = 1440;
+try { faixaMin = parseInt(localStorage.getItem('horta.faixa')) || 1440; } catch (e) {}
+function moverPilula(id, idx) {
+  const botoes = [...document.querySelectorAll('#' + id + ' button')];
+  const pil = document.querySelector('#' + id + ' .pilula');
+  pil.style.width = 'calc((100% - 4px) / ' + botoes.length + ')';
+  pil.style.transform = 'translateX(' + (idx * 100) + '%)';
+  botoes.forEach((b, i) => b.setAttribute('aria-selected', i === idx));
+}
+function marcarSegmento() {
+  const botoes = [...document.querySelectorAll('#faixaSel button')];
+  let idx = botoes.findIndex(b => +b.dataset.min === faixaMin);
+  if (idx < 0) { idx = 1; faixaMin = 1440; }
+  const pil = document.querySelector('#faixaSel .pilula');
+  pil.style.width = 'calc((100% - 4px) / ' + botoes.length + ')';
+  pil.style.transform = 'translateX(' + (idx * 100) + '%)';
+  botoes.forEach((b, i) => b.setAttribute('aria-selected', i === idx));
+}
+document.querySelectorAll('#faixaSel button').forEach(b => b.addEventListener('click', () => {
+  faixaMin = +b.dataset.min;
+  try { localStorage.setItem('horta.faixa', faixaMin); } catch (e) {}
+  marcarSegmento();
+  carregarHistorico();
+}));
+
+// ================================================================
+// GRÁFICOS (SVG próprio, sem bibliotecas: o painel roda sem internet)
+// ================================================================
+function el(tag, attrs, pai) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (pai) pai.appendChild(e);
+  return e;
+}
+function passoBonito(bruto) {
+  const p = Math.pow(10, Math.floor(Math.log10(bruto)));
+  const f = bruto / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+function escalaY(min, max, divisoes) {
+  if (min === max) { min -= 1; max += 1; }
+  const passo = passoBonito((max - min) / divisoes);
+  const lo = Math.floor(min / passo) * passo, hi = Math.ceil(max / passo) * passo;
+  const ticks = [];
+  for (let v = lo; v <= hi + passo / 2; v += passo) ticks.push(+v.toFixed(6));
+  return { lo, hi, ticks, passo };
+}
+// Marcas do eixo X alinhadas ao horário local
+function marcasX(t0, t1) {
+  const span = t1 - t0, marcas = [];
+  if (span > 2 * 86400) {
+    const d = new Date(t0 * 1000); d.setHours(0, 0, 0, 0);
+    for (let t = d.getTime() / 1000 + 86400; t < t1; ) {
+      marcas.push({ t, txt: semPonto(fmtSemana.format(new Date(t * 1000))) });
+      const n = new Date(t * 1000); n.setDate(n.getDate() + 1); t = n.getTime() / 1000;
+    }
+  } else {
+    const passoH = span > 12 * 3600 ? 6 : 1;
+    const d = new Date(t0 * 1000); d.setMinutes(0, 0, 0);
+    for (let t = d.getTime() / 1000; t < t1; t += 3600) {
+      if (t <= t0) continue;
+      const h = new Date(t * 1000).getHours();
+      if (h % passoH) continue;
+      marcas.push({ t, txt: (h === 0 && span > 12 * 3600) ? semPonto(fmtSemana.format(new Date(t * 1000))) : h + 'h' });
+    }
+  }
+  return marcas;
+}
+
+/*
+ cfg = {
+   altura, t0, passo, n,
+   series: [{ v: [...], cor, nome, fmt, tipo: 'linha' | 'degrau' }],
+   banda: { lo: [...], hi: [...], cor },
+   y: { min, max, fixo, fmt },
+   ref: { v, txt },
+   rotuloDica: i => texto do cabeçalho da dica
+ }
+*/
+function graficoTempo(box, cfg) {
+  box._cfg = cfg; box._tipo = 'tempo';
+  box.innerHTML = '';
+  const W = Math.max(box.clientWidth, 200), H = cfg.altura || 190;
+  const pl = 2, pr = 38, pt = 8, pb = 22;
+  const pw = W - pl - pr, ph = H - pt - pb;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, box);
+
+  // Faixa Y
+  let lo = Infinity, hi = -Infinity;
+  cfg.series.forEach(s => s.v.forEach(v => { if (v !== null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }));
+  if (cfg.banda) { cfg.banda.lo.forEach(v => { if (v !== null) lo = Math.min(lo, v); }); cfg.banda.hi.forEach(v => { if (v !== null) hi = Math.max(hi, v); }); }
+  const temDados = lo !== Infinity;
+  if (cfg.ref && temDados) { lo = Math.min(lo, cfg.ref.v); hi = Math.max(hi, cfg.ref.v); }
+  if (cfg.y && cfg.y.fixo) { lo = cfg.y.min; hi = cfg.y.max; }
+  else if (temDados) { if (cfg.y && cfg.y.min !== undefined) lo = Math.min(lo, cfg.y.min); const folga = (hi - lo) * 0.08 || 0.5; lo -= folga; hi += folga; if (cfg.y && cfg.y.min === 0) lo = Math.max(0, lo); }
+  else { lo = 0; hi = 1; }
+  const esc = (cfg.y && cfg.y.fixo) ? { lo, hi, ticks: cfg.y.ticks } : escalaY(lo, hi, 4);
+  const Y = v => pt + ph - (v - esc.lo) / (esc.hi - esc.lo) * ph;
+  const X = i => pl + (i + 0.5) / cfg.n * pw;
+  const fmtY = (cfg.y && cfg.y.fmt) || (v => num(v, esc.passo < 1 ? 1 : 0));
+
+  // Grade e eixo Y (à direita, como no app Saúde)
+  esc.ticks.forEach(v => {
+    el('line', { x1: pl, x2: pl + pw, y1: Y(v), y2: Y(v), class: v === esc.lo ? 'base' : 'grade-y' }, svg);
+    const t = el('text', { x: W - pr + 6, y: Y(v) + 4 }, svg); t.textContent = fmtY(v);
+  });
+  // Eixo X
+  const t1 = cfg.t0 + cfg.n * cfg.passo;
+  marcasX(cfg.t0, t1).forEach(m => {
+    const x = pl + (m.t - cfg.t0) / (t1 - cfg.t0) * pw;
+    el('line', { x1: x, x2: x, y1: pt + ph, y2: pt + ph + 4, class: 'base' }, svg);
+    const t = el('text', { x, y: H - 5, 'text-anchor': 'middle' }, svg); t.textContent = m.txt;
+  });
+
+  if (!temDados) {
+    const t = el('text', { x: pl + pw / 2, y: pt + ph / 2, 'text-anchor': 'middle', class: 'vazio' }, svg);
+    t.textContent = 'Sem dados neste período';
+    return;
+  }
+
+  // Referência (ex.: vazão mínima)
+  if (cfg.ref) {
+    el('line', { x1: pl, x2: pl + pw, y1: Y(cfg.ref.v), y2: Y(cfg.ref.v), class: 'ref' }, svg);
+    const t = el('text', { x: pl + 4, y: Y(cfg.ref.v) - 5, class: 'ref-txt' }, svg); t.textContent = cfg.ref.txt;
+  }
+
+  // Banda mín–máx
+  if (cfg.banda) {
+    let d = '', run = [];
+    const fechar = () => {
+      if (!run.length) return;
+      if (run.length === 1) { const i = run[0]; run = [i, i]; }
+      d += 'M' + run.map(i => X(i) + ',' + Y(cfg.banda.hi[i])).join('L');
+      d += 'L' + run.slice().reverse().map(i => X(i) + ',' + Y(cfg.banda.lo[i])).join('L') + 'Z';
+      run = [];
+    };
+    const ponte = cfg.ponte ? Math.floor(cfg.ponte / cfg.passo) : 0;
+    let lacuna = 0;
+    for (let i = 0; i < cfg.n; i++) {
+      if (cfg.banda.lo[i] !== null && cfg.banda.hi[i] !== null) { run.push(i); lacuna = 0; }
+      else if (++lacuna > ponte) fechar();
+    }
+    fechar();
+    el('path', { d, fill: cfg.banda.cor, opacity: 0.16 }, svg);
+  }
+
+  // Séries
+  cfg.series.forEach(s => {
+    if (s.tipo === 'barra') {
+      const slot = pw / cfg.n, bw = Math.max(1, slot - (slot > 6 ? 2 : 1));
+      for (let i = 0; i < cfg.n; i++) {
+        const v = s.v[i];
+        if (v === null || v <= 0) continue;
+        const x0 = X(i) - bw / 2, yb = Y(esc.lo), h = Math.max(1.5, yb - Y(v));
+        const r = Math.min(3, bw / 2, h);
+        el('path', { d: `M${x0},${yb}V${yb - h + r}Q${x0},${yb - h} ${x0 + r},${yb - h}H${x0 + bw - r}Q${x0 + bw},${yb - h} ${x0 + bw},${yb - h + r}V${yb}Z`, fill: s.cor }, svg);
+      }
+    } else if (s.tipo === 'degrau') {
+      const bw = pw / cfg.n;
+      let d = '';
+      let aberto = false;
+      for (let i = 0; i < cfg.n; i++) {
+        const v = s.v[i];
+        if (v === null) { if (aberto) { d += `L${X(i - 1) + bw / 2},${Y(esc.lo)}Z`; aberto = false; } continue; }
+        const x0 = X(i) - bw / 2, x1 = X(i) + bw / 2;
+        if (!aberto) { d += `M${x0},${Y(esc.lo)}`; aberto = true; }
+        d += `L${x0},${Y(v)}L${x1},${Y(v)}`;
+      }
+      if (aberto) d += `L${X(cfg.n - 1) + bw / 2},${Y(esc.lo)}Z`;
+      el('path', { d, fill: s.cor, opacity: 0.85 }, svg);
+    } else {
+      let d = '', anterior = false, lacuna = 0;
+      const ponte = cfg.ponte ? Math.floor(cfg.ponte / cfg.passo) : 0;
+      for (let i = 0; i < cfg.n; i++) {
+        const v = s.v[i];
+        if (v === null) { if (++lacuna > ponte) anterior = false; continue; }
+        lacuna = 0;
+        const isolado = !anterior && (i + 1 >= cfg.n || s.v[i + 1] === null) && !ponte;
+        if (isolado) el('circle', { cx: X(i), cy: Y(v), r: 2, fill: s.cor }, svg);
+        d += (anterior ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1);
+        anterior = true;
+      }
+      el('path', { d, fill: 'none', stroke: s.cor, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+    }
+  });
+
+  // Camada de interação: mira + dica
+  const mira = el('line', { y1: pt, y2: pt + ph, class: 'mira', visibility: 'hidden' }, svg);
+  const pontos = cfg.series.filter(s => s.tipo !== 'degrau').map(s => el('circle', { r: 4.5, fill: s.cor, stroke: 'var(--card)', 'stroke-width': 2, visibility: 'hidden' }, svg));
+  const dica = document.createElement('div'); dica.className = 'dica'; box.appendChild(dica);
+  const alvo = el('rect', { x: pl, y: 0, width: pw, height: H, fill: 'transparent' }, svg);
+
+  function mostrar(ev) {
+    const r = svg.getBoundingClientRect();
+    const px = (ev.clientX - r.left) * (W / r.width);
+    let i = Math.max(0, Math.min(cfg.n - 1, Math.floor((px - pl) / pw * cfg.n)));
+    if (cfg.ponte && cfg.series[0].v[i] === null) {
+      for (let k = 1; k <= Math.floor(cfg.ponte / cfg.passo); k++) {
+        if (i - k >= 0 && cfg.series[0].v[i - k] !== null) { i -= k; break; }
+        if (i + k < cfg.n && cfg.series[0].v[i + k] !== null) { i += k; break; }
+      }
+    }
+    const x = X(i);
+    mira.setAttribute('x1', x); mira.setAttribute('x2', x); mira.setAttribute('visibility', 'visible');
+    let linhas = '';
+    let k = 0;
+    cfg.series.forEach(s => {
+      const v = s.v[i];
+      if (s.tipo !== 'degrau') {
+        const c = pontos[k++];
+        if (v === null) c.setAttribute('visibility', 'hidden');
+        else { c.setAttribute('cx', x); c.setAttribute('cy', Y(v)); c.setAttribute('visibility', 'visible'); }
+      }
+      linhas += `<div class="lin"><span class="legenda-ponto" style="background:${s.cor}"></span>${s.nome}<b>${v === null ? '—' : s.fmt(v, i)}</b></div>`;
+    });
+    if (cfg.extraDica) linhas += cfg.extraDica(i);
+    const t = cfg.t0 + i * cfg.passo;
+    const quando = cfg.passo >= 1800 ? semPonto(fmtDiaHora.format(new Date(t * 1000))) : fmtHora.format(new Date(t * 1000));
+    dica.innerHTML = `<div class="quando">${quando}</div>` + linhas;
+    const dw = dica.offsetWidth, bw = box.clientWidth;
+    const xPx = x * (r.width / W);
+    let left = xPx + 12;
+    if (left + dw > bw) left = xPx - dw - 12;
+    dica.style.left = Math.max(0, left) + 'px';
+    dica.classList.add('on');
+  }
+  function esconder() {
+    mira.setAttribute('visibility', 'hidden');
+    pontos.forEach(c => c.setAttribute('visibility', 'hidden'));
+    dica.classList.remove('on');
+  }
+  alvo.addEventListener('pointermove', mostrar);
+  alvo.addEventListener('pointerdown', mostrar);
+  alvo.addEventListener('pointerleave', esconder);
+  alvo.addEventListener('pointercancel', esconder);
+}
+
+// Barras (duração das soluções)
+function graficoBarras(box, cfg) {
+  box._cfg = cfg; box._tipo = 'barras';
+  box.innerHTML = '';
+  const W = Math.max(box.clientWidth, 200), H = cfg.altura || 180;
+  const pl = 2, pr = 38, pt = 8, pb = 22;
+  const pw = W - pl - pr, ph = H - pt - pb;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, box);
+  if (!cfg.itens.length) {
+    const t = el('text', { x: W / 2, y: H / 2, 'text-anchor': 'middle', class: 'vazio' }, svg);
+    t.textContent = cfg.vazio || 'Sem registros';
+    return;
+  }
+  const max = Math.max(...cfg.itens.map(i => i.v), cfg.media || 0);
+  const esc = escalaY(0, max * 1.05, 3);
+  const Y = v => pt + ph - v / esc.hi * ph;
+  esc.ticks.forEach(v => {
+    el('line', { x1: pl, x2: pl + pw, y1: Y(v), y2: Y(v), class: v === 0 ? 'base' : 'grade-y' }, svg);
+    const t = el('text', { x: W - pr + 6, y: Y(v) + 4 }, svg); t.textContent = cfg.fmtY(v);
+  });
+  const n = cfg.itens.length;
+  const slot = pw / n, bw = Math.min(28, slot * 0.62);
+  const rects = [];
+  cfg.itens.forEach((it, i) => {
+    const cx = pl + slot * (i + 0.5), y = Y(it.v), h = Math.max(2, pt + ph - y);
+    const r = Math.min(4, bw / 2, h / 2);
+    const x0 = cx - bw / 2, x1 = cx + bw / 2, yb = pt + ph;
+    const d = `M${x0},${yb}V${yb - h + r}Q${x0},${yb - h} ${x0 + r},${yb - h}H${x1 - r}Q${x1},${yb - h} ${x1},${yb - h + r}V${yb}Z`;
+    const p = el('path', { d, fill: cfg.cor, opacity: it.atual ? 0.4 : 1 }, svg);
+    rects.push(p);
+    if (n <= 12 || i % Math.ceil(n / 8) === 0) {
+      const t = el('text', { x: cx, y: H - 5, 'text-anchor': 'middle' }, svg); t.textContent = it.rotulo;
+    }
+  });
+  if (cfg.media) {
+    el('line', { x1: pl, x2: pl + pw, y1: Y(cfg.media), y2: Y(cfg.media), class: 'ref', style: 'stroke:var(--label-2)' }, svg);
+    const t = el('text', { x: pl + 4, y: Y(cfg.media) - 5, style: 'font-weight:600' }, svg); t.textContent = 'média';
+  }
+  const dica = document.createElement('div'); dica.className = 'dica'; box.appendChild(dica);
+  const alvo = el('rect', { x: pl, y: 0, width: pw, height: H, fill: 'transparent' }, svg);
+  function mostrar(ev) {
+    const r = svg.getBoundingClientRect();
+    const px = (ev.clientX - r.left) * (W / r.width);
+    const i = Math.max(0, Math.min(n - 1, Math.floor((px - pl) / slot)));
+    rects.forEach((p, k) => p.setAttribute('opacity', k === i ? 1 : (cfg.itens[k].atual ? 0.25 : 0.45)));
+    dica.innerHTML = cfg.itens[i].dica;
+    const xPx = (pl + slot * (i + 0.5)) * (r.width / W);
+    const dw = dica.offsetWidth;
+    let left = xPx + bw / 2 + 8;
+    if (left + dw > box.clientWidth) left = xPx - bw / 2 - dw - 8;
+    dica.style.left = Math.max(0, left) + 'px';
+    dica.classList.add('on');
+  }
+  function esconder() {
+    rects.forEach((p, k) => p.setAttribute('opacity', cfg.itens[k].atual ? 0.4 : 1));
+    dica.classList.remove('on');
+  }
+  alvo.addEventListener('pointermove', mostrar);
+  alvo.addEventListener('pointerdown', mostrar);
+  alvo.addEventListener('pointerleave', esconder);
+}
+
+// Mini-gráfico dos mosaicos
+function sparkline(box, valores, cor) {
+  box.innerHTML = '';
+  const W = Math.max(box.clientWidth, 60), H = 26;
+  const v = valores.map((x, i) => [i, x]).filter(p => p[1] !== null);
+  if (v.length < 2) return;
+  let lo = Math.min(...v.map(p => p[1])), hi = Math.max(...v.map(p => p[1]));
+  if (hi - lo < 0.2) { lo -= 0.1; hi += 0.1; }
+  const X = i => i / (valores.length - 1) * W, Y = y => 2 + (H - 4) - (y - lo) / (hi - lo) * (H - 4);
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' }, box);
+  let d = '', ant = false;
+  valores.forEach((y, i) => { if (y === null) { ant = false; return; } d += (ant ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(y).toFixed(1); ant = true; });
+  el('path', { d, fill: 'none', stroke: cor, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, svg);
+  const ult = v[v.length - 1];
+  el('circle', { cx: X(ult[0]), cy: Y(ult[1]), r: 3, fill: cor, stroke: 'var(--card)', 'stroke-width': 1.5 }, svg);
+}
+
+// Faixa liga/desliga das últimas 6 h
+function faixaBomba(box, valores) {
+  box.innerHTML = '';
+  const n = valores.length || 1;
+  const svg = el('svg', { viewBox: `0 0 ${n} 10`, preserveAspectRatio: 'none' }, box);
+  valores.forEach((v, i) => {
+    if (v === null) return;
+    if (v > 0) el('rect', { x: i, y: 10 - v / 10, width: 1.02, height: v / 10, fill: 'var(--s-bomba)' }, svg);
+  });
+}
+
+function cor(nome) { return getComputedStyle(document.documentElement).getPropertyValue(nome).trim(); }
+
+function redesenharTudo() {
+  document.querySelectorAll('.grafico').forEach(b => {
+    if (!b._cfg || !b.offsetParent) return;
+    if (b._tipo === 'barras') graficoBarras(b, b._cfg); else graficoTempo(b, b._cfg);
+  });
+  if (ultimoResumo) desenharResumoHistorico(ultimoResumo);
+}
+let resizeTimer;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(redesenharTudo, 120); });
+if (window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const reagir = () => { if (historicoAtual) desenharGraficos(historicoAtual); if (solucoesAtual) desenharSolucoes(solucoesAtual); redesenharTudo(); };
+  if (mq.addEventListener) mq.addEventListener('change', reagir); else if (mq.addListener) mq.addListener(reagir);
+}
+
+// ================================================================
+// DADOS AO VIVO (/api/data a cada 2 s)
+// ================================================================
+let dados = null, falhas = 0, ultimaAtualizacao = 0, cfgServidor = null, ajustesSujos = false;
+const CIRC_BOMBA = 2 * Math.PI * 44, CIRC_SOL = 2 * Math.PI * 45;
+
+function definirStatus(tom, icone, titulo, sub) {
+  const s = $('status');
+  s.dataset.tom = tom;
+  s.querySelector('use').setAttribute('href', '#' + icone);
+  $('statusTitulo').textContent = titulo;
+  $('statusSub').textContent = sub;
+}
+
+function aplicarDados(d) {
+  dados = d;
+  const panes = d.panes || [];
+  // Status geral
+  if (d.modoManutencao) definirStatus('orange', 'i-chave', 'Modo manutenção', 'Alertas e detecção de panes suspensos');
+  else if (panes.length) definirStatus('red', 'i-exclama', panes.length === 1 ? 'Atenção' : panes.length + ' alertas', panes.length === 1 ? panes[0] : 'Verifique a lista abaixo');
+  else {
+    const recentes = panesRecentes(86400);
+    definirStatus('green', 'i-check', 'Tudo funcionando', recentes
+      ? recentes + (recentes === 1 ? ' pane resolvida' : ' panes resolvidas') + ' nas últimas 24 h'
+      : 'Atualizado às ' + fmtHora.format(new Date()));
+  }
+  const ul = $('alertas');
+  ul.hidden = !(panes.length > 1 && !d.modoManutencao);
+  ul.innerHTML = '';
+  if (!ul.hidden) panes.forEach(p => { const li = document.createElement('li'); li.textContent = p; ul.appendChild(li); });
+
+  // Bomba
+  const st = d.tomadaStatus, seg = d.tomadaSeg || 0;
+  const anel = $('anelBomba'), helice = $('heliceBomba');
+  const minOn = d.cfg.minOn * 60, maxOff = d.cfg.maxOff * 60;
+  let prog = 0, classe = 'parada', estado = st, detalhe = '';
+  if (st === 'LIGADA') {
+    classe = ''; estado = 'Ligada';
+    prog = Math.min(1, seg / minOn);
+    detalhe = 'há ' + duracao(seg) + (seg < minOn ? ' · ciclo mínimo ' + d.cfg.minOn + ' min' : ' · ciclo mínimo cumprido');
+    if (!d.fluxoPresente && seg > d.cfg.partida) { classe = 'alerta'; detalhe = 'há ' + duracao(seg) + ' · sem fluxo de água'; }
+  } else if (st === 'DESLIGADA') {
+    estado = 'Em pausa';
+    prog = Math.min(1, seg / maxOff);
+    const falta = maxOff - seg;
+    if (falta <= 0) { classe = 'alerta'; detalhe = 'há ' + duracao(seg) + ' · passou do limite'; }
+    else detalhe = 'há ' + duracao(seg) + ' · liga em até ' + duracao(falta);
+  } else if (st === 'OFFLINE') { classe = 'erro'; estado = 'Sem sinal'; detalhe = 'A tomada não responde'; prog = 1; }
+  else { estado = 'Conectando'; detalhe = 'Aguardando a tomada'; }
+  anel.className = 'anel ' + classe;
+  $('arcoBomba').style.strokeDashoffset = CIRC_BOMBA * (1 - prog);
+  helice.classList.toggle('girando', st === 'LIGADA' && d.fluxoPresente);
+  $('bombaEstado').textContent = estado;
+  $('bombaDetalhe').textContent = detalhe;
+
+  // Mosaicos
+  $('tSol').innerHTML = num(d.tSol, 1) + '<small>°C</small>';
+  $('tAmb').innerHTML = num(d.tAmb, 1) + '<small>°C</small>';
+  $('fluxo').innerHTML = num(d.fluxo, 2) + '<small>L/min</small>';
+  $('fluxoSub').textContent = d.fluxoPresente ? (d.fluxo < d.cfg.vazaoMin ? 'abaixo da mínima' : 'circulando') : 'sem fluxo';
+  if (d.tSol !== null && d.tAmb !== null) {
+    const delta = d.tAmb - d.tSol;
+    $('tSolSub').textContent = Math.abs(delta) < 0.5 ? 'igual ao ambiente' : num(Math.abs(delta), 1) + '° ' + (delta > 0 ? 'mais fria' : 'mais quente');
+  } else $('tSolSub').textContent = d.tSol === null ? 'sensor sem leitura' : ' ';
+  $('tAmbSub').textContent = d.tAmb === null ? 'sem previsão' : 'Open-Meteo';
+  const nivel = $('nivel');
+  nivel.textContent = d.nivelBaixo ? 'Mínimo' : 'Normal';
+  nivel.className = 'valor ' + (d.nivelBaixo ? 'c-erro' : 'c-ok');
+  $('nivelSub').textContent = d.nivelPausado ? 'leitura em pausa (bomba)' : (d.nivelBaixo ? 'completar o tanque' : 'acima do mínimo');
+
+  // Ajustes e dispositivo
+  $('chkManutencao').checked = d.modoManutencao;
+  $('infoFw').textContent = d.fw + ' · ' + d.fwData;
+  $('infoIp').textContent = d.ip;
+  $('infoNuvem').textContent = (d.diag && d.diag.nuvem) || '--';
+  $('infoUptime').textContent = duracao(d.uptimeSeg);
+  if (d.histMin) $('infoHist').textContent = duracao(d.histMin * 60, true) + (d.histFlash ? ' · salvo no flash' : ' · só na RAM');
+  else $('infoHist').textContent = 'indisponível';
+  const seguro = d.diag && d.diag.modoSeguro;
+  $('cardSeguro').hidden = !seguro;
+  if (seguro) {
+    $('seguroTitulo').textContent = 'Modo seguro' + (seguro >= 2 ? ' (nível 2)' : '');
+    $('seguroTexto').textContent = 'A horta travou ' + d.diag.falhasBoot + ' vezes seguidas ao iniciar. Nesta sessão o OLED'
+      + (seguro >= 2 ? ', o histórico e a central de alertas ficam' : ' fica') + ' desativado'
+      + '. O monitoramento, o painel e o Telegram seguem funcionando. Em Ajustes › Dispositivo, “Reiniciar horta” tenta o modo normal.';
+  }
+  if (d.diag) {
+    const rssi = d.diag.rssi;
+    $('infoRssi').textContent = rssi + ' dBm · ' + (rssi >= -60 ? 'ótimo' : rssi >= -70 ? 'bom' : rssi >= -80 ? 'fraco' : 'muito fraco');
+    $('infoHeap').textContent = Math.round(d.diag.heapLivre / 1024) + ' KB · ' + Math.round(d.diag.heapMin / 1024) + ' KB';
+    $('infoVolta').textContent = d.diag.voltaMaxMs + ' ms';
+  }
+  if (d.ultimoEvento !== undefined && d.ultimoEvento !== ultimoSeqVisto) carregarEventos();
+  if (!cfgServidor) carregarAjustes(d.cfg);
+  atualizarIdadeSolucao();
+}
+
+async function carregarDados() {
+  try {
+    const r = await api('/api/data');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    falhas = 0; ultimaAtualizacao = Date.now();
+    aplicarDados(d);
+    if (MODO_NUVEM && d.idadeSeg !== null) {
+      $('infoAcesso').textContent = 'acessando pela nuvem · leitura de ' + (d.idadeSeg < 10 ? 'agora' : 'há ' + duracao(d.idadeSeg));
+      if (d.idadeSeg > ESTADO_VELHO_SEG) definirStatus('gray', 'i-semrede', 'Horta fora do ar', 'Última notícia há ' + duracao(d.idadeSeg) + ' · valores dessa hora');
+    }
+  } catch (e) {
+    if (++falhas >= 2) definirStatus('gray', 'i-semrede', 'Sem conexão', ultimaAtualizacao ? 'Última leitura às ' + fmtHora.format(new Date(ultimaAtualizacao)) : 'A horta não respondeu');
+  }
+}
+async function cicloDados() { await carregarDados(); setTimeout(cicloDados, 2000); }
+
+// ================================================================
+// HISTÓRICO
+// ================================================================
+let historicoAtual = null, ultimoResumo = null;
+function coluna(h, k) { return h.d.map(r => r === null ? null : r[k]); }
+
+// Reagrupa os pontos em blocos de 'seg' segundos alinhados ao horário local
+// (ex.: barras por hora). Colunas: 0 sol, 1 amb, 2 vazão, 3 mín, 4 máx, 5 bomba %, 6 online %, 7 flags
+function agrupar(h, seg) {
+  if (seg <= h.passo) return h;
+  const fuso = new Date(h.t0 * 1000).getTimezoneOffset() * 60;
+  const chave = t => Math.floor((t - fuso) / seg);
+  const k0 = chave(h.t0), kN = chave(h.t0 + (h.d.length - 1) * h.passo);
+  const grupos = [];
+  for (let k = k0; k <= kN; k++) grupos.push([]);
+  h.d.forEach((r, i) => { if (r) grupos[chave(h.t0 + i * h.passo) - k0].push(r); });
+  const red = (g, c, f) => { const v = g.map(r => r[c]).filter(x => x !== null); return v.length ? f(v) : null; };
+  const media = v => v.reduce((a, b) => a + b, 0) / v.length;
+  const d = grupos.map(g => g.length ? [
+    red(g, 0, media), red(g, 1, media), red(g, 2, media),
+    red(g, 3, v => Math.min(...v)), red(g, 4, v => Math.max(...v)),
+    red(g, 5, media), red(g, 6, media), g.reduce((a, r) => a | r[7], 0)
+  ] : null);
+  return Object.assign({}, h, { d, t0: k0 * seg + fuso, passo: seg });
+}
+
+async function buscarHistorico(min, pts) {
+  const r = await api(`/api/history?min=${min}&pts=${pts}`);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+// Resumo: sparklines e faixa da bomba (6 h, 72 pontos)
+async function carregarResumoHistorico() {
+  try {
+    const h = await buscarHistorico(360, 180);
+    if (!h.ok) return;
+    ultimoResumo = h;
+    desenharResumoHistorico(h);
+  } catch (e) {}
+}
+function desenharResumoHistorico(h) {
+  sparkline($('sparkSol'), coluna(h, 0), cor('--s-sol'));
+  sparkline($('sparkAmb'), coluna(h, 1), cor('--s-amb'));
+  // Vazão: só os trechos com a bomba ligada, emendados (mostra a tendência)
+  sparkline($('sparkFlu'), coluna(h, 2).filter(v => v !== null), cor('--s-flu'));
+  faixaBomba($('faixaBomba'), coluna(h, 5));
+  $('bombaPct6h').textContent = h.stats.bombaPct === null ? '--' : num(h.stats.bombaPct, 0) + '%';
+}
+
+async function carregarHistorico() {
+  marcarSegmento();
+  const pts = faixaMin <= 360 ? 180 : faixaMin <= 1440 ? 288 : 336;
+  try {
+    const h = await buscarHistorico(faixaMin, pts);
+    if (!h.ok) { $('gRodape').textContent = 'O histórico começa assim que o relógio sincronizar pela internet.'; return; }
+    historicoAtual = h;
+    desenharGraficos(h);
+  } catch (e) {
+    $('gRodape').textContent = 'Não foi possível carregar o histórico.';
+  }
+}
+
+function desenharGraficos(h) {
+  const s = h.stats, n = h.d.length;
+  const base = { t0: h.t0, passo: h.passo, n };
+  const faixaSeg = s.faixa * 60;
+  const hb = agrupar(h, faixaSeg <= 6 * 3600 ? 0 : faixaSeg <= 86400 ? 3600 : 6 * 3600);
+  const hf = agrupar(h, faixaSeg <= 6 * 3600 ? 0 : faixaSeg <= 86400 ? 1800 : 3 * 3600);
+  const pct = v => num(v, 0) + '%';
+
+  // Bomba
+  $('gBombaPct').innerHTML = s.bombaPct === null ? '--' : num(s.bombaPct, 0) + '<small>%</small>';
+  $('gBombaPctSub').textContent = s.bombaSeg ? duracao(s.bombaSeg, true) + ' no total' : ' ';
+  $('gOnline').innerHTML = s.onlinePct === null ? '--' : num(s.onlinePct, 1) + '<small>%</small>';
+  $('gCiclos').textContent = s.ciclos;
+  $('gCicloMed').textContent = s.ciclos ? duracao(s.cicloMed, true) : '--';
+  $('gCicloFaixa').textContent = s.ciclos ? Math.round(s.cicloMin / 60) + '–' + Math.round(s.cicloMax / 60) + ' min' : '--';
+  const curto = hb === h;
+  graficoTempo($('gBomba'), {
+    t0: hb.t0, passo: hb.passo, n: hb.d.length,
+    altura: 150,
+    series: [{ v: coluna(hb, 5), cor: cor('--s-bomba'), nome: 'Ligada', tipo: curto ? 'degrau' : 'barra', fmt: pct }],
+    y: { fixo: true, min: 0, max: 100, ticks: [0, 50, 100], fmt: v => v + '%' },
+    extraDica: i => { const o = hb.d[i] ? hb.d[i][6] : null; return o !== null && o < 99.5 ? `<div class="lin" style="color:var(--red)">Tomada sem sinal<b>${num(100 - o, 0)}%</b></div>` : ''; }
+  });
+
+  // Vazão
+  const fmtL = v => num(v, 2) + ' L/min';
+  $('gFluMed').innerHTML = s.fluMed === null ? '--' : num(s.fluMed, 2) + '<small>L/min</small>';
+  $('gFluSub').textContent = s.fluMin === null ? 'sem fluxo no período' : 'variou de ' + num(s.fluMin, 1) + ' a ' + num(s.fluMax, 1) + ' L/min';
+  graficoTempo($('gFluxo'), {
+    t0: hf.t0, passo: hf.passo, n: hf.d.length,
+    ponte: 45 * 60,   // a bomba parada não é falta de dado: liga os ciclos
+    series: [{ v: coluna(hf, 2), cor: cor('--s-flu'), nome: 'Média', fmt: fmtL }],
+    banda: { lo: coluna(hf, 3), hi: coluna(hf, 4), cor: cor('--s-flu') },
+    y: { fmt: v => num(v, v % 1 ? 1 : 0) },
+    ref: dados ? { v: dados.cfg.vazaoMin, txt: 'mínima ' + num(dados.cfg.vazaoMin, 1) } : null,
+    extraDica: i => hf.d[i] && hf.d[i][3] !== null ? `<div class="lin" style="color:var(--label-2)">Faixa<b>${num(hf.d[i][3], 1)}–${num(hf.d[i][4], 1)}</b></div>` : ''
+  });
+
+  // Temperatura (mesma unidade: um único eixo)
+  const fmtT = v => num(v, 1) + ' °C';
+  $('gSolMed').innerHTML = s.solMed === null ? '--' : num(s.solMed, 1) + '<small>°C</small>';
+  $('gSolFaixa').textContent = s.solMin === null ? ' ' : num(s.solMin, 1) + '° a ' + num(s.solMax, 1) + '°';
+  $('gAmbMed').innerHTML = s.ambMed === null ? '--' : num(s.ambMed, 1) + '<small>°C</small>';
+  $('gAmbFaixa').textContent = s.ambMin === null ? ' ' : num(s.ambMin, 1) + '° a ' + num(s.ambMax, 1) + '°';
+  $('gDelta').innerHTML = (s.solMed === null || s.ambMed === null) ? '--' : (s.ambMed - s.solMed >= 0 ? '+' : '−') + num(Math.abs(s.ambMed - s.solMed), 1) + '<small>°C</small>';
+  graficoTempo($('gTemp'), Object.assign({}, base, {
+    altura: 210,
+    series: [
+      { v: coluna(h, 0), cor: cor('--s-sol'), nome: 'Solução', fmt: fmtT },
+      { v: coluna(h, 1), cor: cor('--s-amb'), nome: 'Ambiente', fmt: fmtT }
+    ],
+    extraDica: i => {
+      const r = h.d[i];
+      if (!r || r[0] === null || r[1] === null) return '';
+      const dd = r[1] - r[0];
+      return `<div class="lin" style="color:var(--label-2)">Diferença<b>${dd >= 0 ? '+' : '−'}${num(Math.abs(dd), 1)} °C</b></div>`;
+    }
+  }));
+
+  const cobertura = s.faixa ? s.minutos / s.faixa : 0;
+  $('gRodape').textContent = cobertura < 0.98
+    ? `Dados em ${num(cobertura * 100, 0)}% do período (o restante é tempo em que a horta esteve desligada ou ainda não havia histórico).`
+    : '';
+}
+
+// ================================================================
+// SOLUÇÃO / REABASTECIMENTOS
+// ================================================================
+let solucoesAtual = null;
+async function carregarSolucoes() {
+  try {
+    const r = await api('/api/solucoes');
+    if (!r.ok) throw new Error();
+    solucoesAtual = await r.json();
+    desenharSolucoes(solucoesAtual);
+  } catch (e) {}
+}
+
+function agoraEpoch() {
+  if (dados && dados.epoch) return dados.epoch + Math.round((Date.now() - ultimaAtualizacao) / 1000);
+  return Math.round(Date.now() / 1000);
+}
+
+function analisarSolucoes(s) {
+  const lista = s.lista || [];
+  const agora = agoraEpoch();
+  const completas = [];
+  for (let i = 0; i < lista.length - 1; i++) {
+    const r = lista[i];
+    completas.push({ inicio: r.inicio, fim: lista[i + 1].inicio, dur: lista[i + 1].inicio - r.inicio, minimo: r.minimo, bombaSeg: r.bombaSeg });
+  }
+  const atual = lista.length ? lista[lista.length - 1] : null;
+  const media = completas.length ? completas.reduce((a, c) => a + c.dur, 0) / completas.length : null;
+  const comMin = completas.filter(c => c.minimo && c.minimo > c.inicio);
+  const ateMin = comMin.length ? comMin.reduce((a, c) => a + (c.minimo - c.inicio), 0) / comMin.length : null;
+  return { lista, completas, atual, media, ateMin, agora };
+}
+
+function atualizarIdadeSolucao() {
+  if (!solucoesAtual) return;
+  const a = analisarSolucoes(solucoesAtual);
+  if (!a.atual) {
+    $('nivelBarraTxt').textContent = 'sem reabastecimento registrado';
+    return;
+  }
+  const idade = a.agora - a.atual.inicio;
+  $('solIdade').textContent = duracao(idade, true);
+  const frac = a.media ? Math.min(1, idade / a.media) : 0;
+  $('arcoSol').style.strokeDashoffset = CIRC_SOL * (1 - (a.media ? frac : 0));
+  $('nivelBarra').style.width = (a.media ? Math.max(0, 1 - frac) * 100 : 100) + '%';
+  $('nivelBarraTxt').textContent = 'solução há ' + duracao(idade, true);
+  if (a.atual.minimo) {
+    $('solTitulo').textContent = 'Nível mínimo atingido';
+    $('solSub').textContent = 'após ' + duracao(a.atual.minimo - a.atual.inicio, true) + ' · complete o tanque';
+  } else if (a.media) {
+    const previsto = a.atual.inicio + a.media;
+    $('solTitulo').textContent = previsto > a.agora ? 'Próximo reabastecimento' : 'Já passou da média';
+    $('solSub').textContent = previsto > a.agora
+      ? 'previsto para ' + semPonto(fmtDataLonga.format(new Date(previsto * 1000))) + ' (em ' + duracao(previsto - a.agora, true) + ')'
+      : 'a média é de ' + duracao(a.media, true) + ' por solução';
+  } else {
+    $('solTitulo').textContent = 'Reabastecida em ' + fmtData.format(new Date(a.atual.inicio * 1000));
+    $('solSub').textContent = 'A previsão aparece depois do próximo reabastecimento';
+  }
+}
+
+function desenharSolucoes(s) {
+  const a = analisarSolucoes(s);
+  if (!a.atual) {
+    $('solIdade').textContent = '—';
+    $('solTitulo').textContent = 'Nenhum reabastecimento registrado';
+    $('solSub').textContent = 'Toque no botão abaixo ao completar o reservatório para começar a medir.';
+  }
+  atualizarIdadeSolucao();
+  $('solQtd').textContent = a.completas.length ? a.completas.length + (a.completas.length === 1 ? ' completa' : ' completas') : '';
+  $('solMedia').innerHTML = a.media ? duracao(a.media, true).replace(/ (d|h|min)/g, '<small>$1</small>') : '--';
+  $('solAteMin').innerHTML = a.ateMin ? duracao(a.ateMin, true).replace(/ (d|h|min)/g, '<small>$1</small>') : '--';
+  const durs = a.completas.map(c => c.dur);
+  $('solMin').textContent = durs.length ? duracao(Math.min(...durs), true) : '--';
+  $('solMax').textContent = durs.length ? duracao(Math.max(...durs), true) : '--';
+  const bombas = a.completas.filter(c => c.bombaSeg > 0);
+  $('solBomba').textContent = bombas.length ? duracao(bombas.reduce((x, c) => x + c.bombaSeg, 0) / bombas.length, true) : '--';
+
+  const itens = a.completas.map(c => ({
+    v: c.dur / 86400,
+    rotulo: semPonto(fmtData.format(new Date(c.inicio * 1000))).replace(/ de /, ' '),
+    dica: `<div class="quando">${semPonto(fmtData.format(new Date(c.inicio * 1000)))} → ${semPonto(fmtData.format(new Date(c.fim * 1000)))}</div>`
+      + `<div class="lin">Duração<b>${duracao(c.dur, true)}</b></div>`
+      + (c.minimo ? `<div class="lin">Até o mínimo<b>${duracao(c.minimo - c.inicio, true)}</b></div>` : '')
+      + (c.bombaSeg ? `<div class="lin">Bomba ligada<b>${duracao(c.bombaSeg, true)}</b></div>` : '')
+  }));
+  if (a.atual) {
+    const idade = a.agora - a.atual.inicio;
+    itens.push({ v: idade / 86400, atual: true, rotulo: 'atual', dica: `<div class="quando">Solução atual</div><div class="lin">Em uso há<b>${duracao(idade, true)}</b></div>` });
+  }
+  graficoBarras($('gSolucoes'), {
+    itens: itens.slice(-12), cor: cor('--s-flu'), media: a.media ? a.media / 86400 : null,
+    fmtY: v => num(v, v % 1 ? 1 : 0) + ' d',
+    vazio: 'Os registros aparecem após o primeiro reabastecimento'
+  });
+
+  // Lista (mais recente primeiro)
+  const ul = $('listaSol');
+  ul.innerHTML = '';
+  if (!a.lista.length) { ul.innerHTML = '<li class="vazio-card" style="display:block">Nenhum registro ainda</li>'; return; }
+  const linhas = [];
+  if (a.atual) linhas.push({ inicio: a.atual.inicio, dur: a.agora - a.atual.inicio, minimo: a.atual.minimo, atual: true });
+  a.completas.slice().reverse().forEach(c => linhas.push(c));
+  linhas.forEach(c => {
+    const li = document.createElement('li');
+    const de = semPonto(fmtData.format(new Date(c.inicio * 1000)));
+    const ate = c.atual ? 'hoje' : semPonto(fmtData.format(new Date(c.fim * 1000)));
+    const sub = c.minimo ? 'mínimo após ' + duracao(c.minimo - c.inicio, true) : (c.atual ? 'em uso' : 'reabastecida antes do mínimo');
+    li.innerHTML = `<div class="datas"><div>${de} → ${ate}${c.atual ? '<span class="etiqueta verde">atual</span>' : ''}</div><div class="s">${sub}</div></div><div class="dur">${duracao(c.dur, true)}</div>`;
+    ul.appendChild(li);
+  });
+}
+
+// ================================================================
+// CENTRAL DE ALERTAS (/api/eventos)
+// ================================================================
+const EV = { PANE_INICIO: 1, PANE_FIM: 2, REINICIO: 3, MANUTENCAO: 4, REABASTECIMENTO: 5, AJUSTES: 6, WIFI: 7, LIMPEZA: 8 };
+const MOTIVO_REINICIO = {
+  1: ['Ligada na energia', false], 2: ['Botão de reset', false], 3: ['Reinício pelo software', false],
+  4: ['Travamento do firmware', true], 5: ['Watchdog (travou)', true], 6: ['Watchdog (travou)', true],
+  7: ['Watchdog (travou)', true], 8: ['Saiu do modo de economia', false], 9: ['Queda de tensão na alimentação', true]
+};
+let eventosDados = null, ultimoSeqVisto = null, filtroEv = 'todos', carregandoEventos = false;
+let vistoEv = 0;
+try { vistoEv = parseInt(localStorage.getItem('horta.vistoEv')) || 0; } catch (e) {}
+
+async function carregarEventos() {
+  if (carregandoEventos) return;
+  carregandoEventos = true;
+  try {
+    const r = await api('/api/eventos?n=300');
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    eventosDados = d;
+    ultimoSeqVisto = d.ultimo;
+    if (vistoEv > d.ultimo) vistoEv = 0;   // memória do ESP apagada
+    atualizarSelo();
+    if (abaAtual === 'alertas') desenharEventos();
+  } catch (e) {}
+  carregandoEventos = false;
+}
+
+// Junta início e fim de cada pane num item só (lista vem do mais novo para o mais antigo)
+function montarItens() {
+  if (!eventosDados) return [];
+  const itens = [], fimPendente = {};
+  eventosDados.lista.forEach(([seq, t, tipo, id, dur, extra]) => {
+    const e = { seq, t, tipo, id, dur, extra };
+    if (tipo === EV.PANE_FIM) { fimPendente[id] = e; e.orfao = true; itens.push(e); return; }
+    if (tipo === EV.PANE_INICIO && fimPendente[id]) {
+      e.fim = fimPendente[id];
+      e.fim.orfao = false;
+      delete fimPendente[id];
+    }
+    itens.push(e);
+  });
+  return itens.filter(e => e.tipo !== EV.PANE_FIM || e.orfao);
+}
+function ehPane(e) { return e.tipo === EV.PANE_INICIO || e.tipo === EV.PANE_FIM; }
+function reinicioInesperado(e) { return e.tipo === EV.REINICIO && MOTIVO_REINICIO[e.extra] && MOTIVO_REINICIO[e.extra][1]; }
+function importante(e) { return e.tipo === EV.PANE_INICIO || reinicioInesperado(e); }
+
+function panesRecentes(seg) {
+  const agora = agoraEpoch();
+  return montarItens().filter(e => e.tipo === EV.PANE_INICIO && e.fim && e.t && agora - e.t <= seg).length;
+}
+
+function atualizarSelo() {
+  if (!eventosDados) return;
+  const n = eventosDados.lista.filter(([seq, t, tipo, id, dur, extra]) => seq > vistoEv && importante({ tipo, extra })).length;
+  const selo = $('seloAlertas');
+  selo.hidden = n === 0;
+  selo.textContent = n > 9 ? '9+' : n;
+  $('btnLidas').disabled = !eventosDados.lista.some(r => r[0] > vistoEv);
+}
+
+function marcarLidas() {
+  if (!eventosDados) return;
+  vistoEv = eventosDados.ultimo;
+  try { localStorage.setItem('horta.vistoEv', vistoEv); } catch (e) {}
+  atualizarSelo();
+}
+
+function abrirAlertas() {
+  moverPilula('filtroEv', ['todos', 'panes', 'sistema'].indexOf(filtroEv));
+  if (eventosDados) desenharEventos(); else carregarEventos();
+}
+
+function descreverEvento(e) {
+  const agora = agoraEpoch();
+  const nomePane = id => (eventosDados.panes && eventosDados.panes[id]) || 'Pane';
+  switch (e.tipo) {
+    case EV.PANE_INICIO:
+      if (!e.fim) return { ic: 'i-exclama', cor: 'red', tit: nomePane(e.id), sub: '<span class="vivo">Em andamento</span>' + (e.t ? ' há ' + duracao(agora - e.t, true) : '') };
+      return { ic: 'i-exclama', cor: 'orange', tit: nomePane(e.id),
+        sub: (e.fim.extra ? 'Limpa manualmente após ' : e.id === 6 ? 'Reabastecido após ' : 'Normalizou sozinha após ') + duracao(e.fim.dur, true) + (e.fim.t ? ' · às ' + fmtHora.format(new Date(e.fim.t * 1000)) : '') };
+    case EV.PANE_FIM:
+      return { ic: 'i-check', cor: 'green', tit: nomePane(e.id) + ' — resolvida', sub: 'Durou ' + duracao(e.dur, true) + (e.extra ? ' · limpa manualmente' : '') };
+    case EV.REINICIO: {
+      const m = MOTIVO_REINICIO[e.extra] || ['Motivo desconhecido (' + e.extra + ')', false];
+      const n = Math.max(e.dur, 1);   // reinícios seguidos agrupados neste evento
+      if (n > 1) return { ic: 'i-energia', cor: 'red', tit: 'Travamento em loop',
+        sub: 'Reiniciou ' + n + ' vezes seguidas · ' + m[0] + (e.t ? ' · o horário é do último reinício' : ' · horário desconhecido') };
+      return { ic: 'i-energia', cor: m[1] ? 'orange' : 'blue', tit: m[1] ? 'Reinício inesperado' : 'Horta ligada', sub: m[0] + (e.t ? '' : ' · horário desconhecido') };
+    }
+    case EV.LIMPEZA:
+      return { ic: 'i-sino', cor: 'gray', tit: 'Central de alertas limpa', sub: e.dur + (e.dur === 1 ? ' evento apagado' : ' eventos apagados') };
+    case EV.MANUTENCAO:
+      return { ic: 'i-chave', cor: 'orange', tit: e.extra ? 'Manutenção ativada' : 'Manutenção desativada', sub: e.extra ? 'Alertas e detecção de panes suspensos' : 'Monitoramento normal retomado' };
+    case EV.REABASTECIMENTO:
+      return { ic: 'i-gota', cor: 'teal', tit: 'Reservatório reabastecido', sub: e.extra ? 'Registrado manualmente' : 'Detectado pelo sensor de nível' };
+    case EV.AJUSTES:
+      return { ic: 'i-ajustes', cor: 'gray', tit: 'Ajustes alterados', sub: 'Parâmetros salvos pelo painel' };
+    case EV.WIFI:
+      return { ic: 'i-wifi', cor: 'gray', tit: 'WiFi reconectado', sub: 'Ficou ' + duracao(e.dur, true) + ' sem rede' };
+  }
+  return { ic: 'i-sino', cor: 'gray', tit: 'Evento ' + e.tipo, sub: '' };
+}
+
+function linhaEvento(e) {
+  const d = descreverEvento(e);
+  const hora = e.t ? fmtHora.format(new Date(e.t * 1000)) : '--:--';
+  const li = document.createElement('li');
+  li.className = 'ev' + (e.seq > vistoEv || (e.fim && e.fim.seq > vistoEv) ? ' nova' : '');
+  li.innerHTML = `<div class="ic ${d.cor}"><svg><use href="#${d.ic}"/></svg></div>`
+    + `<div class="corpo"><div class="tit"><span>${d.tit}</span><span class="hora">${hora}</span></div><div class="sub">${d.sub}</div></div>`;
+  return li;
+}
+
+function rotuloDia(t) {
+  const d = new Date(t * 1000), hoje = new Date();
+  const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
+  if (d.toDateString() === hoje.toDateString()) return 'Hoje';
+  if (d.toDateString() === ontem.toDateString()) return 'Ontem';
+  return semPonto(fmtDataLonga.format(d));
+}
+
+function desenharEventos() {
+  if (!eventosDados) return;
+  const itens = montarItens();
+  const agora = agoraEpoch();
+
+  // Resumo de 7 dias
+  const panes7 = itens.filter(e => e.tipo === EV.PANE_INICIO && e.t && agora - e.t <= 7 * 86400);
+  $('evQtd7').textContent = panes7.length;
+  const tempo = panes7.reduce((a, e) => a + (e.fim ? e.fim.dur : agora - e.t), 0);
+  $('evTempo7').textContent = panes7.length ? duracao(tempo, true) : '0 min';
+  const cont = {};
+  panes7.forEach(e => cont[e.id] = (cont[e.id] || 0) + 1);
+  const top = Object.keys(cont).sort((a, b) => cont[b] - cont[a])[0];
+  $('evFreq7').textContent = top === undefined ? 'Nenhuma' : cont[top] < 2 ? 'Nenhuma repetida' : eventosDados.panes[top] + ' (' + cont[top] + '×)';
+
+  // Em andamento
+  const ativas = itens.filter(e => e.tipo === EV.PANE_INICIO && !e.fim);
+  const boxAtivas = $('evAtivas');
+  boxAtivas.innerHTML = '';
+  if (ativas.length && filtroEv !== 'sistema') {
+    boxAtivas.innerHTML = '<div class="dia" style="color:var(--red)">Agora</div>';
+    const g = document.createElement('div'); g.className = 'grupo';
+    const ul = document.createElement('ul'); ul.className = 'ev-lista';
+    ativas.forEach(e => ul.appendChild(linhaEvento(e)));
+    g.appendChild(ul); boxAtivas.appendChild(g);
+  }
+
+  // Linha do tempo agrupada por dia
+  const visiveis = itens.filter(e => !(e.tipo === EV.PANE_INICIO && !e.fim))
+    .filter(e => filtroEv === 'todos' || (filtroEv === 'panes') === ehPane(e));
+  const box = $('evLinhaTempo');
+  box.innerHTML = '';
+  let diaAtual = null, ul = null;
+  visiveis.forEach(e => {
+    const dia = e.t ? rotuloDia(e.t) : 'Sem horário';
+    if (dia !== diaAtual) {
+      diaAtual = dia;
+      const h = document.createElement('div'); h.className = 'dia'; h.textContent = dia; box.appendChild(h);
+      const g = document.createElement('div'); g.className = 'grupo';
+      ul = document.createElement('ul'); ul.className = 'ev-lista';
+      g.appendChild(ul); box.appendChild(g);
+    }
+    ul.appendChild(linhaEvento(e));
+  });
+  if (!visiveis.length && !(ativas.length && filtroEv !== 'sistema')) {
+    box.innerHTML = '<div class="card vazio-card" style="margin-top:12px">' + (filtroEv === 'panes' ? 'Nenhuma pane registrada' : 'Nenhum evento registrado') + '</div>';
+  }
+  const maisAntigo = eventosDados.lista.length ? eventosDados.lista[eventosDados.lista.length - 1][1] : 0;
+  $('evRodape').textContent = maisAntigo ? 'Histórico desde ' + semPonto(fmtDataLonga.format(new Date(maisAntigo * 1000))) + ' · guarda os últimos 512 eventos.' : '';
+
+  // Abrir a central marca tudo como lido (os pontos azuis ficam até sair da aba)
+  marcarLidas();
+}
+
+document.querySelectorAll('#filtroEv button').forEach((b, i) => b.addEventListener('click', () => {
+  filtroEv = b.dataset.f;
+  moverPilula('filtroEv', i);
+  desenharEventos();
+}));
+$('btnLidas').addEventListener('click', () => { marcarLidas(); desenharEventos(); });
+$('status').addEventListener('click', () => irPara('alertas'));
+$('status').style.cursor = 'pointer';
+
+// ================================================================
+// AÇÕES E AJUSTES
+// ================================================================
+async function postar(url) {
+  const r = await api(url, { method: 'POST' });
+  const txt = await r.text();
+  if (!r.ok) throw new Error(r.status === 401 ? 'Login ou senha incorretos' : (txt || 'Erro ' + r.status));
+  return txt;
+}
+
+$('chkManutencao').addEventListener('change', async e => {
+  const ligar = e.target.checked;
+  try { await postar('/api/action?cmd=manutencao&val=' + (ligar ? 1 : 0)); avisar(ligar ? 'Modo manutenção ativado' : 'Modo manutenção desativado'); }
+  catch (err) { e.target.checked = !ligar; avisar(err.message, true); }
+  carregarDados();
+});
+$('btnResetNivel').addEventListener('click', async () => {
+  try { await postar('/api/action?cmd=resetNivel'); avisar('Alerta de nível destravado'); carregarSolucoes(); }
+  catch (err) { avisar(err.message, true); }
+  carregarDados();
+});
+$('btnResetBomba').addEventListener('click', async () => {
+  try { await postar('/api/action?cmd=resetBomba'); avisar('Alertas da bomba limpos'); }
+  catch (err) { avisar(err.message, true); }
+  carregarDados();
+});
+$('btnLimparEventos').addEventListener('click', async () => {
+  if (!confirm('Apagar todo o histórico da central de alertas? As panes em andamento continuam aparecendo.')) return;
+  try {
+    await postar('/api/action?cmd=limparEventos');
+    avisar('Central de alertas limpa');
+    eventosDados = null; ultimoSeqVisto = null; vistoEv = 0;
+    try { localStorage.removeItem('horta.vistoEv'); } catch (e) {}
+    $('seloAlertas').hidden = true;
+    carregarEventos();
+  } catch (err) { avisar(err.message, true); }
+});
+$('btnReiniciar').addEventListener('click', async () => {
+  if (!confirm('Reiniciar a horta agora? O monitoramento fica parado por alguns segundos. A bomba, que é controlada pela tomada, não é afetada.')) return;
+  try { await postar('/api/action?cmd=reiniciar'); avisar('Reiniciando… o painel volta em instantes'); }
+  catch (err) { avisar(err.message, true); }
+});
+$('btnReabastecer').addEventListener('click', async () => {
+  if (!confirm('Registrar que o reservatório foi reabastecido agora?')) return;
+  try { await postar('/api/action?cmd=reabastecido'); avisar('Reabastecimento registrado'); carregarSolucoes(); }
+  catch (err) { avisar(err.message, true); }
+});
+
+const SLIDERS = [
+  ['rngMinOn', 'valMinOn', 'minOn'], ['rngMaxOff', 'valMaxOff', 'maxOff'],
+  ['rngPartida', 'valPartida', 'partida'], ['rngCarencia', 'valCarencia', 'carencia'],
+  ['rngVazaoMin', 'valVazaoMin', 'vazaoMin'], ['rngVazaoBaixa', 'valVazaoBaixa', 'vazaoBaixa'],
+  ['rngTolNivel', 'valTolNivel', 'tolNivel']
+];
+function definirSelect(id, valor) {
+  const sel = $(id);
+  if (![...sel.options].some(o => o.value == valor)) {
+    const o = document.createElement('option'); o.value = valor; o.textContent = valor + ' min'; sel.appendChild(o);
+  }
+  sel.value = valor;
+}
+function lerAjustes() {
+  const c = {};
+  SLIDERS.forEach(([r, , k]) => c[k] = parseFloat($(r).value));
+  c.intNivel = parseInt($('selIntervaloNivel').value);
+  c.intFluxo = parseInt($('selIntervaloFluxo').value);
+  c.notifHoraria = $('chkNotifHoraria').checked;
+  c.resumoDiario = $('chkResumoDiario').checked;
+  c.horaResumo = parseInt($('selHoraResumo').value);
+  return c;
+}
+function atualizarSliders() {
+  SLIDERS.forEach(([r, v]) => {
+    const inp = $(r), un = inp.dataset.un;
+    const val = parseFloat(inp.value);
+    $(v).textContent = (un === 'L/min' ? num(val, 1) : val) + ' ' + un;
+    inp.style.setProperty('--p', ((val - inp.min) / (inp.max - inp.min) * 100) + '%');
+  });
+  const on = +$('rngMinOn').value, off = +$('rngMaxOff').value;
+  $('barOn').style.flexGrow = on; $('barOff').style.flexGrow = off;
+  $('lblMinOn').textContent = on + ' min'; $('lblMaxOff').textContent = off + ' min';
+  if (cfgServidor) {
+    const atual = lerAjustes();
+    ajustesSujos = Object.keys(atual).some(k => atual[k] != cfgServidor[k]);
+    $('btnSalvar').classList.toggle('on', ajustesSujos);
+  }
+}
+function carregarAjustes(c) {
+  SLIDERS.forEach(([r, , k]) => $(r).value = c[k]);
+  definirSelect('selIntervaloNivel', c.intNivel);
+  definirSelect('selIntervaloFluxo', c.intFluxo);
+  $('chkNotifHoraria').checked = c.notifHoraria;
+  $('chkResumoDiario').checked = c.resumoDiario !== false;
+  $('selHoraResumo').value = c.horaResumo !== undefined ? c.horaResumo : 20;
+  cfgServidor = Object.assign({}, c);
+  atualizarSliders();
+}
+SLIDERS.forEach(([r]) => $(r).addEventListener('input', atualizarSliders));
+['selIntervaloNivel', 'selIntervaloFluxo', 'chkNotifHoraria', 'chkResumoDiario', 'selHoraResumo'].forEach(id => $(id).addEventListener('change', atualizarSliders));
+for (let h = 0; h < 24; h++) {
+  const o = document.createElement('option');
+  o.value = h; o.textContent = String(h).padStart(2, '0') + ':00';
+  $('selHoraResumo').appendChild(o);
+}
+$('chkResumoDiario').addEventListener('change', () => { $('linhaHoraResumo').style.opacity = $('chkResumoDiario').checked ? 1 : 0.4; });
+const NOMES_PANES = ['Bomba sem vazão', 'Vazão baixa', 'Fluxo com a bomba desligada', 'Bomba não ligou no horário',
+  'Desligamento precoce da bomba', 'Tomada sem comunicação', 'Nível mínimo no reservatório'];
+NOMES_PANES.forEach((n, i) => { const o = document.createElement('option'); o.value = i; o.textContent = n; $('selPanePrevia').appendChild(o); });
+let tipoPrevia = 'status';
+
+// Mostra o texto como o Telegram: só <b>, <i> e <code> viram formatação
+function telegramParaHtml(txt) {
+  return txt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/&lt;(\/?)(b|i|code)&gt;/g, '<$1$2>')
+    .replace(/&amp;(lt|gt|amp);/g, '&$1;');
+}
+async function carregarPrevia() {
+  $('previaPane').hidden = !(tipoPrevia === 'alerta' || tipoPrevia === 'resolvido');
+  try {
+    const r = await api('/api/msg?tipo=' + tipoPrevia + '&id=' + $('selPanePrevia').value);
+    $('previaTexto').innerHTML = telegramParaHtml(await r.text());
+    $('previaHora').textContent = fmtHora.format(new Date());
+  } catch (e) { $('previaTexto').textContent = 'Não foi possível montar a prévia.'; }
+}
+document.querySelectorAll('#previaTipo button').forEach((b, i) => b.addEventListener('click', () => {
+  tipoPrevia = b.dataset.t;
+  moverPilula('previaTipo', i);
+  carregarPrevia();
+}));
+$('selPanePrevia').addEventListener('change', carregarPrevia);
+$('btnPreviaResumo').addEventListener('click', () => {
+  const box = $('previaResumo');
+  box.hidden = !box.hidden;
+  $('btnPreviaResumo').textContent = box.hidden ? 'Ver prévia das mensagens' : 'Ocultar prévia';
+  if (!box.hidden) { moverPilula('previaTipo', ['status', 'alerta', 'resolvido', 'resumo'].indexOf(tipoPrevia)); carregarPrevia(); }
+});
+$('btnEnviarResumo').addEventListener('click', async () => {
+  try { await postar('/api/action?cmd=resumo'); avisar('Resumo enviado ao Telegram'); }
+  catch (err) { avisar(err.message, true); }
+});
+$('btnSalvar').addEventListener('click', async () => {
+  const c = lerAjustes();
+  const p = new URLSearchParams({ ...c, notifHoraria: c.notifHoraria ? 1 : 0, resumoDiario: c.resumoDiario ? 1 : 0 });
+  const b = $('btnSalvar'); b.disabled = true;
+  try {
+    await postar('/api/save?' + p.toString());
+    cfgServidor = Object.assign({}, cfgServidor, c);
+    if (dados) Object.assign(dados.cfg, c);
+    atualizarSliders();
+    avisar('Ajustes salvos');
+  } catch (err) { avisar(err.message, true); }
+  b.disabled = false;
+});
+
+// ================================================================
+// INÍCIO
+// ================================================================
+$('hoje').textContent = semPonto(fmtDataLonga.format(new Date()));
+function iniciarPainel() {
+  irPara((location.hash || '#resumo').slice(1), false);
+  cicloDados();
+  carregarSolucoes();
+  carregarResumoHistorico();
+  setInterval(carregarResumoHistorico, 60000);
+  setInterval(() => { if (abaAtual === 'graficos' && !document.hidden) carregarHistorico(); }, 60000);
+  setInterval(() => { if (!document.hidden) carregarSolucoes(); }, 300000);
+  setInterval(() => { if (abaAtual === 'alertas' && !document.hidden) desenharEventos(); }, 30000);
+}
+if (MODO_NUVEM) iniciarNuvem(iniciarPainel);
+else iniciarPainel();
+</script>
+</body>
+</html>
