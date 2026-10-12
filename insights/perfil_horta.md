@@ -15,8 +15,8 @@ com **(confirme)** são suposições minhas: corrija ou apague.
   para a localização da horta. Pode diferir do que a horta sente de verdade.
 - Não há sensor de pH nem de condutividade (EC). Não opine sobre pH/EC como se fossem
   medidos; no máximo, sugira conferir manualmente quando fizer sentido.
-- **(confirme)** A horta fica ao ar livre / varanda, sujeita ao sol e à chuva.
-- **(confirme)** Sistema NFT (canais com lâmina fina de solução).
+- A horta fica ao ar livre, mas o reservatório com solução nutritiva é fechado e a água da chuva não entra  / Horta e reservatório ficam na varanda, sujeita ao sol e à chuva.
+- Sistema NFT (canais com lâmina fina de solução).
 
 ## Culturas e faixas de referência
 Faixas gerais de literatura para a temperatura da **solução nutritiva**; use como
