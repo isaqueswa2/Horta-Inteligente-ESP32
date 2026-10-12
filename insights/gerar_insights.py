@@ -16,6 +16,8 @@
 #   GEMINI_API_KEY                   chave do Google AI Studio
 #   HORTA_LAT, HORTA_LON             coordenadas da horta (segredo: o repositório é público)
 #   GEMINI_MODEL                     opcional (padrão: gemini-flash-latest)
+#   GEMINI_MODEL_RESERVA             opcional: modelos para tentar se o principal estiver sobrecarregado
+#                                    (padrão: gemini-flash-lite-latest; separe vários por vírgula)
 #   TURNO                            opcional: manha | noite (padrão: pelo horário)
 #
 # Testes locais (sem Firebase nem ESP32):
@@ -539,6 +541,14 @@ FOCO = {
 }
 
 
+class GeminiIndisponivel(RuntimeError):
+    """Modelo sobrecarregado, limite estourado ou rede fora: vale tentar outro modelo."""
+
+
+class ModeloInexistente(RuntimeError):
+    pass
+
+
 def chamar_gemini(chave, modelo, sistema, usuario):
     url = "%s/models/%s:generateContent" % (GEMINI_BASE, modelo)
     corpo = {
@@ -546,9 +556,14 @@ def chamar_gemini(chave, modelo, sistema, usuario):
         "contents": [{"role": "user", "parts": [{"text": usuario}]}],
         "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "maxOutputTokens": 8192},
     }
-    espera = [20, 60, 120]
+    espera = [float(x) for x in (os.environ.get("GEMINI_ESPERA") or "15,40,90").split(",")]
     for n in range(len(espera) + 1):
-        codigo, txt = http("POST", url, corpo, {"x-goog-api-key": chave}, timeout=120, tentativas=1)
+        try:
+            codigo, txt = http("POST", url, corpo, {"x-goog-api-key": chave}, timeout=120, tentativas=1)
+        except ErroHttp as e:                                   # 5xx: o http() lança em vez de devolver
+            codigo, txt = e.codigo, e.corpo
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+            codigo, txt = 0, str(e)
         if codigo == 200:
             d = json_ou_none(txt) or {}
             uso = d.get("usageMetadata", {})
@@ -563,11 +578,13 @@ def chamar_gemini(chave, modelo, sistema, usuario):
             return texto
         if codigo == 404:
             modelos = listar_modelos(chave)
-            raise RuntimeError("Modelo '%s' não encontrado. Defina GEMINI_MODEL com um destes: %s" % (modelo, ", ".join(modelos) or "(não consegui listar)"))
-        if codigo in (429, 500, 503) and n < len(espera):
-            log("  Gemini %s; nova tentativa em %d s" % (codigo, espera[n]))
-            time.sleep(espera[n])
-            continue
+            raise ModeloInexistente("Modelo '%s' não encontrado. Defina GEMINI_MODEL com um destes: %s" % (modelo, ", ".join(modelos) or "(não consegui listar)"))
+        if codigo in (0, 429, 500, 502, 503, 504):
+            if n < len(espera):
+                log("  Gemini (%s) %s; nova tentativa em %d s" % (modelo, codigo or "sem resposta", espera[n]))
+                time.sleep(espera[n])
+                continue
+            raise GeminiIndisponivel("Gemini (%s) indisponível após %d tentativas (último erro %s): %s" % (modelo, len(espera) + 1, codigo, txt[:200]))
         raise RuntimeError("Gemini falhou (%s): %s" % (codigo, txt[:400]))
 
 
@@ -750,16 +767,29 @@ def main():
         chave = os.environ.get("GEMINI_API_KEY")
         if not chave:
             sys.exit("Defina GEMINI_API_KEY (nos Secrets do GitHub).")
-        log("Pedindo a análise ao Gemini (%s)…" % modelo)
-        resultado = None
-        for tentativa in (1, 2):
+        reservas = [m.strip() for m in (os.environ.get("GEMINI_MODEL_RESERVA") or "gemini-flash-lite-latest").split(",") if m.strip()]
+        resultado, primeiro_erro = None, None
+        for candidato in [modelo] + [m for m in reservas if m != modelo]:
+            log("Pedindo a análise ao Gemini (%s)…" % candidato)
             try:
-                resultado = validar_saida(chamar_gemini(chave, modelo, sistema, usuario))
-                break
-            except RuntimeError as e:
-                if tentativa == 2 or "JSON válido" not in str(e) and "nenhum insight" not in str(e):
-                    raise
-                log("  Resposta inutilizável (%s); tentando mais uma vez." % str(e)[:120])
+                for tentativa in (1, 2):
+                    try:
+                        resultado = validar_saida(chamar_gemini(chave, candidato, sistema, usuario))
+                        break
+                    except (GeminiIndisponivel, ModeloInexistente):
+                        raise
+                    except RuntimeError as e:
+                        if tentativa == 2 or ("JSON válido" not in str(e) and "nenhum insight" not in str(e)):
+                            raise
+                        log("  Resposta inutilizável (%s); tentando mais uma vez." % str(e)[:120])
+            except (GeminiIndisponivel, ModeloInexistente) as e:
+                log("  %s" % e)
+                primeiro_erro = primeiro_erro or e
+                continue
+            modelo = candidato
+            break
+        if resultado is None:
+            raise primeiro_erro or RuntimeError("Nenhum modelo do Gemini respondeu.")
 
     saida = dict(resultado)
     saida.update({"dataLocal": hoje, "hora": agora.strftime("%H:%M"), "turno": turno, "modelo": modelo,
