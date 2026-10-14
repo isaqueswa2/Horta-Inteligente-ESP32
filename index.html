@@ -340,6 +340,16 @@ select.seletor { border: 0; background: transparent; color: var(--label-2); text
 .aviso .bola { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 .aviso.erro .bola { background: var(--red); }
 
+/* ---------- Diálogo do reabastecimento anterior ---------- */
+dialog { margin: auto; border: 0; border-radius: 22px; padding: 20px 16px 16px; background: var(--bg); color: var(--label); width: min(380px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog::backdrop { background: rgba(0,0,0,.45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+dialog h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+dialog .s { font-size: 14px; color: var(--label-2); margin: 6px 0 14px; }
+dialog input[type=date], dialog input[type=time] { border: 0; background: var(--fill); color: var(--label); font: inherit; font-size: 17px; border-radius: 9px; padding: 6px 10px; min-height: 36px; color-scheme: light dark; }
+dialog .erro-retro { color: var(--red); font-size: 14px; min-height: 20px; margin-top: 10px; }
+dialog .dlg-botoes { display: flex; gap: 10px; margin-top: 12px; }
+dialog .dlg-botoes .botao { flex: 1; padding: 12px 8px; }
+
 /* ---------- Insights (IA) ---------- */
 .ic-secao { width: 22px; height: 22px; color: var(--blue); }
 .ins-topo { display: flex; align-items: center; gap: 10px; }
@@ -677,6 +687,22 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
     </div>
 
     <div style="margin-top:12px"><button class="botao verde" id="btnReabastecer"><svg><use href="#i-mais"/></svg>Registrar reabastecimento</button></div>
+    <button class="cab-acao" id="btnRetro" style="margin:6px 4px 0">Registrar um reabastecimento anterior…</button>
+    <dialog id="dlgRetro">
+      <form method="dialog" id="formRetro">
+        <h3>Reabastecimento anterior</h3>
+        <p class="s">Informe quando o reservatório foi completado. Só é possível lançar datas depois do último registro.</p>
+        <div class="grupo">
+          <div class="linha"><div class="txt">Data</div><input type="date" id="retroData" required></div>
+          <div class="linha"><div class="txt">Hora aproximada</div><input type="time" id="retroHora" value="12:00" required></div>
+        </div>
+        <p class="erro-retro" id="retroErro"></p>
+        <div class="dlg-botoes">
+          <button type="button" class="botao cinza" id="retroCancelar">Cancelar</button>
+          <button type="submit" class="botao verde" id="retroOk">Registrar</button>
+        </div>
+      </form>
+    </dialog>
     <p class="rodape-secao">Também é registrado sozinho quando o nível sai do mínimo ou quando você destrava o nível depois de completar o tanque.</p>
 
     <div class="secao">Duração de cada solução <small id="solQtd"></small></div>
@@ -2057,6 +2083,36 @@ $('btnReabastecer').addEventListener('click', async () => {
   if (!confirm('Registrar que o reservatório foi reabastecido agora?')) return;
   try { await postar('/api/action?cmd=reabastecido'); avisar('Reabastecimento registrado'); carregarSolucoes(); }
   catch (err) { avisar(err.message, true); }
+});
+
+// Reabastecimento que já aconteceu (a horta só sabia registrar "agora")
+function pad2(n) { return String(n).padStart(2, '0'); }
+function dataLocalISO(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+$('btnRetro').addEventListener('click', () => {
+  const hoje = new Date(), limite = new Date(hoje.getTime() - 365 * 86400000);
+  $('retroData').max = dataLocalISO(hoje);
+  $('retroData').min = dataLocalISO(limite);
+  $('retroErro').textContent = '';
+  $('dlgRetro').showModal();
+});
+$('retroCancelar').addEventListener('click', () => $('dlgRetro').close());
+$('formRetro').addEventListener('submit', async e => {
+  e.preventDefault();
+  const ts = Math.floor(new Date($('retroData').value + 'T' + $('retroHora').value).getTime() / 1000);
+  if (!ts || ts > Date.now() / 1000) { $('retroErro').textContent = 'A data e a hora não podem estar no futuro.'; return; }
+  $('retroOk').disabled = true;
+  $('retroErro').textContent = '';
+  try {
+    await postar('/api/action?cmd=reabastecidoEm&ts=' + ts);
+    // Confere se a horta gravou: um firmware antigo não conhece este comando
+    const r = await api('/api/solucoes');
+    const lista = r.ok ? (await r.json()).lista || [] : [];
+    if (!lista.some(x => Math.abs(x.inicio - ts) < 120)) throw new Error('A horta não registrou. Grave o firmware V3.2.1 ou mais novo para usar este recurso.');
+    $('dlgRetro').close();
+    avisar('Reabastecimento registrado');
+    carregarSolucoes(); carregarDados();
+  } catch (err) { $('retroErro').textContent = err.message; }
+  $('retroOk').disabled = false;
 });
 
 const SLIDERS = [
