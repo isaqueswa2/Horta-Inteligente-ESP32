@@ -16,7 +16,7 @@ com **(confirme)** são suposições minhas: corrija ou apague.
 - Não há sensor de pH nem de condutividade (EC). Não opine sobre pH/EC como se fossem
   medidos; no máximo, sugira conferir manualmente quando fizer sentido.
 - A horta e o reservatório ficam na varanda, expostos ao sol. O reservatório é fechado: a
-  chuva não entra na solução e não a dilui. Só as plantas e os canais ficam sujeitos à chuva.
+  chuva não entra na solução e não a dilui. Só as plantas e os canais ficam sujeitos à chuva.Nao sugira troca ou reposição da solução a menos que chegue perto do prazo previsto pelo sistema.
 - Sistema NFT (canais com lâmina fina de solução).
 
 ## Culturas e faixas de referência
@@ -42,9 +42,8 @@ Pontos transversais:
 - Solução abaixo de ~15 °C: o crescimento desacelera e manjericão/stévia sofrem.
 - Queda gradual de vazão com a bomba ligada sugere entupimento de filtro/canais ou
   desgaste da bomba.
-- O consumo de água acompanha a evapotranspiração (ET0): dias quentes, secos e ensolarados
-  esvaziam o reservatório mais rápido.
-- Solução nutritiva costuma ser renovada a cada 1 a 2 semanas (ajuste pela sua prática).
+- O consumo de água acompanha a evapotranspiração (ET0): dias quentes, secos e ensolarados esvaziam o reservatório mais rápido.
+- Solução nutritiva costuma ser renovada a cada 1 a 2 semanas.
 
 ## O que eu quero receber
 - Insights curtos, práticos e específicos para a minha horta.
