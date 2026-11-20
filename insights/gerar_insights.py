@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ============================================================
-# INSIGHTS DA HORTA (roda no GitHub Actions, de manhã e à noite)
+# INSIGHTS DA HORTA (roda no GitHub Actions, de manhã, à tarde e à noite)
 #
 #   1. Pede ao ESP32, pelo Firebase, o histórico, os eventos e os reabastecimentos
 #      (o mesmo mecanismo que o painel usa; o ESP32 nem percebe a diferença).
@@ -18,7 +18,8 @@
 #   GEMINI_MODEL                     opcional (padrão: gemini-flash-latest)
 #   GEMINI_MODEL_RESERVA             opcional: modelos para tentar se o principal estiver sobrecarregado
 #                                    (padrão: gemini-flash-lite-latest; separe vários por vírgula)
-#   TURNO                            opcional: manha | noite (padrão: pelo horário)
+#   TURNO                            opcional: manha | tarde | noite (padrão: pelo agendamento ou horário)
+#   SCHEDULE                         preenchida pelo workflow (github.event.schedule); define o turno
 #
 # Testes locais (sem Firebase nem ESP32):
 #   python3 gerar_insights.py --fonte-local http://localhost:8080 --saida saida.json --ia-falsa
@@ -46,9 +47,13 @@ FIREBASE_AUTH = os.environ.get("FIREBASE_AUTH_URL", "https://identitytoolkit.goo
 GEMINI_BASE = os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
 OPEN_METEO = os.environ.get("OPEN_METEO_URL", "https://api.open-meteo.com/v1/forecast")
 
-MANTER_INSIGHTS = 28      # 14 dias de manhã e noite
+MANTER_INSIGHTS = 42      # 14 dias de manhã, tarde e noite
 ESPERA_ESP_S = 90         # tempo máximo para o ESP32 responder cada pedido
 ESTADO_VELHO_S = 300      # estado publicado há mais que isso = horta provavelmente fora do ar
+
+
+# Minuto do cron (workflow) -> turno. O GitHub atrasa execuções, então o horário real não serve para decidir.
+TURNO_POR_AGENDAMENTO = {"40 10 * * *": "manha", "40 17 * * *": "tarde", "40 0 * * *": "noite"}
 
 
 def log(*a):
@@ -81,7 +86,7 @@ def http(metodo, url, corpo=None, cabecalhos=None, timeout=30, tentativas=3):
                 return r.status, r.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
             texto = e.read().decode("utf-8", "replace")
-            if e.code < 500:
+            if e.code < 500 and e.code != 429:
                 return e.code, texto
             ultimo = ErroHttp(e.code, texto, url)
         except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
@@ -536,6 +541,7 @@ SAÍDA: responda SOMENTE com um objeto JSON, sem texto fora dele, neste formato:
 Limites: no máximo 6 insights, 4 tendências e 4 ações."""
 
 FOCO = {
+    "tarde": "TURNO: TARDE. Foque no pico de calor do dia (solução, bomba, vazão) e no que fazer antes do fim da tarde e da noite. Compare com a análise da manhã (\"insights_recentes\") e diga só o que mudou.",
     "manha": "TURNO: MANHÃ. Foque no que esperar do dia (calor, chuva, evapotranspiração, risco para a solução) e no que fazer antes de o calor chegar. Faça um balanço curto da noite.",
     "noite": "TURNO: NOITE. Faça o balanço do dia (como a solução, a vazão e a bomba se comportaram) e prepare o dia seguinte. Destaque tendências da semana.",
 }
@@ -554,7 +560,7 @@ def chamar_gemini(chave, modelo, sistema, usuario):
     corpo = {
         "systemInstruction": {"parts": [{"text": sistema}]},
         "contents": [{"role": "user", "parts": [{"text": usuario}]}],
-        "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "maxOutputTokens": 8192},
+        "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "maxOutputTokens": 16384},
     }
     espera = [float(x) for x in (os.environ.get("GEMINI_ESPERA") or "15,40,90").split(",")]
     for n in range(len(espera) + 1):
@@ -573,6 +579,8 @@ def chamar_gemini(chave, modelo, sistema, usuario):
                 raise RuntimeError("Gemini não devolveu candidatos: %s" % txt[:300])
             partes = (cands[0].get("content") or {}).get("parts") or []
             texto = "".join(p.get("text", "") for p in partes if not p.get("thought"))
+            if cands[0].get("finishReason") == "MAX_TOKENS":
+                raise RuntimeError("A IA não devolveu JSON válido: resposta cortada por limite de tokens (raciocínio %s)" % uso.get("thoughtsTokenCount", 0))
             if not texto.strip():
                 raise RuntimeError("Gemini devolveu resposta vazia (motivo: %s)" % cands[0].get("finishReason"))
             return texto
@@ -670,7 +678,11 @@ def montar_dados(fonte, agora, lat, lon, resumos_antigos, insights_recentes, tur
         log("  Horta sem comunicação recente (estado %s)." % ("ausente" if not estado else "com %d s" % estado.get("_idadeSeg", 0)))
 
     log("Buscando clima…")
-    clima, et0 = baixar_clima(lat, lon)
+    try:
+        clima, et0 = baixar_clima(lat, lon)
+    except Exception as e:      # sem clima ainda dá para analisar os sensores
+        log("  Clima indisponível (%s); seguindo só com os sensores." % str(e)[:200])
+        clima, et0 = [], {}
     dias = agrupar_por_dia(h7)
     previsao_sol = prever_solucao(dias, resumos_antigos, clima, hoje)
 
@@ -700,6 +712,8 @@ def montar_dados(fonte, agora, lat, lon, resumos_antigos, insights_recentes, tur
         "insights_recentes": insights_recentes,
     }
     dados["fatos_calculados"] = fatos_calculados(estado if esp_ok else None, dias, previsao_sol, clima, hoje)
+    if not clima:
+        dados["fatos_calculados"].append({"sev": "info", "fato": "Clima e previsão indisponíveis nesta execução (serviço de clima fora do ar). Não comente o tempo."})
     if not esp_ok:
         quando = "sem nenhum registro" if not estado else "há %d min" % round(estado.get("_idadeSeg", 0) / 60.0)
         dados["fatos_calculados"].insert(0, {"sev": "alerta", "fato": "A horta está sem comunicação (última notícia %s). Os dados dos sensores não estão disponíveis." % quando})
@@ -725,11 +739,12 @@ def main():
     ap.add_argument("--saida", help="grava o resultado neste arquivo JSON em vez do Firebase")
     ap.add_argument("--ia-falsa", action="store_true", help="não chama o Gemini (testes)")
     ap.add_argument("--mostrar-dados", action="store_true", help="imprime os dados enviados à IA")
-    ap.add_argument("--turno", choices=["manha", "noite"], default=os.environ.get("TURNO") or None)
+    ap.add_argument("--turno", choices=["manha", "tarde", "noite"], default=os.environ.get("TURNO") or None)
     args = ap.parse_args()
 
     agora = datetime.now(TZ)
-    turno = args.turno or ("manha" if agora.hour < 15 else "noite")
+    turno = args.turno or TURNO_POR_AGENDAMENTO.get((os.environ.get("SCHEDULE") or "").strip()) or (
+        "manha" if agora.hour < 12 else "tarde" if agora.hour < 18 else "noite")
     hoje = agora.date().isoformat()
     log("Insights da horta · %s · turno %s" % (agora.strftime("%d/%m/%Y %H:%M"), turno))
 
@@ -779,8 +794,11 @@ def main():
                     except (GeminiIndisponivel, ModeloInexistente):
                         raise
                     except RuntimeError as e:
-                        if tentativa == 2 or ("JSON válido" not in str(e) and "nenhum insight" not in str(e)):
+                        inutilizavel = "JSON válido" in str(e) or "nenhum insight" in str(e) or "resposta vazia" in str(e)
+                        if not inutilizavel:
                             raise
+                        if tentativa == 2:
+                            raise GeminiIndisponivel("%s (resposta inutilizável duas vezes)" % e)
                         log("  Resposta inutilizável (%s); tentando mais uma vez." % str(e)[:120])
             except (GeminiIndisponivel, ModeloInexistente) as e:
                 log("  %s" % e)
