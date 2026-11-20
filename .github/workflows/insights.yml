@@ -1,20 +1,23 @@
 name: Insights da horta
 
-# Duas execuções por dia (horários em UTC; o Brasil está em UTC-3, sem horário de verão):
-#   10:17 UTC = 07:17 em Brasília  (insights da manhã)
-#   00:17 UTC = 21:17 em Brasília  (balanço da noite)
-# O GitHub pode atrasar execuções agendadas em alguns minutos nos horários de pico.
+# Três execuções por dia (horários em UTC; o Brasil está em UTC-3, sem horário de verão):
+#   10:40 UTC = 07:40 em Brasília  (insights da manhã)
+#   17:40 UTC = 14:40 em Brasília  (insights da tarde)
+#   00:40 UTC = 21:40 em Brasília  (balanço da noite)
+# Minutos "quebrados" de propósito: o GitHub atrasa muito os agendamentos de :00, :15, :30 e :45.
+# Se mudar um horário, mude também TURNO_POR_AGENDAMENTO em insights/gerar_insights.py.
 on:
   schedule:
-    - cron: '17 10 * * *'
-    - cron: '17 0 * * *'
+    - cron: '40 10 * * *'
+    - cron: '40 17 * * *'
+    - cron: '40 0 * * *'
   workflow_dispatch:
     inputs:
       turno:
         description: 'Turno (vazio = pelo horário)'
         required: false
         type: choice
-        options: ['', manha, noite]
+        options: ['', manha, tarde, noite]
 
 concurrency:
   group: insights-horta
@@ -42,4 +45,4 @@ jobs:
           HORTA_LON: ${{ secrets.HORTA_LON }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           TURNO: ${{ inputs.turno }}
-
+          SCHEDULE: ${{ github.event.schedule }}
