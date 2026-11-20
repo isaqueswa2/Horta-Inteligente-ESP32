@@ -279,6 +279,7 @@ select.seletor { border: 0; background: transparent; color: var(--label-2); text
 .lista-sol .datas { flex: 1; }
 .lista-sol .datas .s { font-size: 13px; color: var(--label-2); margin-top: 1px; }
 .lista-sol .dur { font-weight: 600; font-variant-numeric: tabular-nums; }
+.lista-sol .apagar { background: none; border: 0; color: var(--red, #ff453a); font: inherit; font-size: 14px; padding: 6px 4px; cursor: pointer; }
 .etiqueta { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 6px; border-radius: 5px; background: var(--fill); color: var(--label-2); margin-left: 6px; vertical-align: 2px; }
 .etiqueta.verde { background: rgba(52,199,89,.16); color: var(--green-ink); }
 
@@ -347,6 +348,10 @@ dialog h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
 dialog .s { font-size: 14px; color: var(--label-2); margin: 6px 0 14px; }
 dialog input[type=date], dialog input[type=time] { border: 0; background: var(--fill); color: var(--label); font: inherit; font-size: 17px; border-radius: 9px; padding: 6px 10px; min-height: 36px; color-scheme: light dark; }
 dialog .erro-retro { color: var(--red); font-size: 14px; min-height: 20px; margin-top: 10px; }
+dialog input[type=file] { width: 100%; font: inherit; font-size: 15px; color: var(--label); }
+dialog .ota-barra { height: 8px; border-radius: 4px; background: var(--fill); overflow: hidden; margin: 12px 0 4px; }
+dialog .ota-barra > div { height: 100%; width: 0; background: var(--green); transition: width .2s; }
+dialog .erro-retro.ok { color: var(--green-ink); }
 dialog .dlg-botoes { display: flex; gap: 10px; margin-top: 12px; }
 dialog .dlg-botoes .botao { flex: 1; padding: 12px 8px; }
 
@@ -841,12 +846,14 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
       <div class="linha"><div class="txt">Firmware</div><div class="val" id="infoFw">--</div></div>
       <div class="linha"><div class="txt">Endereço IP</div><div class="val" id="infoIp">--</div></div>
       <div class="linha"><div class="txt"><div>Nuvem</div><div class="s" id="infoAcesso">acessando pela rede local</div></div><div class="val" id="infoNuvem">--</div></div>
+      <div class="linha"><div class="txt"><div>Atualização remota (OTA)</div><div class="s" id="infoOtaSub">--</div></div><div class="val" id="infoOta">--</div></div>
       <div class="linha"><div class="txt">Ligado há</div><div class="val" id="infoUptime">--</div></div>
       <div class="linha"><div class="txt">Histórico</div><div class="val" id="infoHist">--</div></div>
       <div class="linha"><div class="txt">Sinal WiFi</div><div class="val" id="infoRssi">--</div></div>
       <div class="linha"><div class="txt"><div>Tela</div><div class="s">área visível deste aparelho</div></div><div class="val" id="infoTela">--</div></div>
       <div class="linha"><div class="txt"><div>Memória livre</div><div class="s">mínimo desde que ligou</div></div><div class="val" id="infoHeap">--</div></div>
       <div class="linha"><div class="txt"><div>Volta mais lenta do loop</div><div class="s">último minuto · inclui atender o painel</div></div><div class="val" id="infoVolta">--</div></div>
+      <button class="linha botao-linha" id="btnOta" hidden>Atualizar firmware…</button>
       <button class="linha botao-linha" id="btnInstalar" hidden>Instalar como app</button>
       <button class="linha botao-linha perigo" id="btnLimparEventos">Limpar central de alertas</button>
       <button class="linha botao-linha perigo" id="btnReiniciar">Reiniciar horta</button>
@@ -865,6 +872,22 @@ body.carregando-nuvem .login form { opacity: .5; pointer-events: none; }
   <button data-aba="solucao"><svg><use href="#i-gota"/></svg>Solução</button>
   <button data-aba="ajustes"><svg><use href="#i-ajustes"/></svg>Ajustes</button>
 </nav>
+
+<dialog id="dlgOta">
+  <form method="dialog" id="formOta">
+    <h3>Atualizar firmware</h3>
+    <p class="s" id="otaVersao"></p>
+    <p class="s">Na IDE do Arduino, use <b>Sketch › Exportar binário compilado</b> e escolha o arquivo terminado em <b>.ino.bin</b> (não o que tem <i>merged</i> ou <i>bootloader</i> no nome).</p>
+    <div class="grupo"><div class="linha"><input type="file" id="otaArquivo" accept=".bin" required></div></div>
+    <div class="ota-barra" id="otaBarra" hidden><div id="otaProgresso"></div></div>
+    <p class="erro-retro" id="otaStatus"></p>
+    <p class="s" id="otaAviso">A horta fica uns 30 s sem monitorar durante a atualização. A bomba não é afetada: ela é controlada por uma tomada independente.</p>
+    <div class="dlg-botoes">
+      <button type="button" class="botao cinza" id="otaCancelar">Cancelar</button>
+      <button type="submit" class="botao" id="otaEnviar">Atualizar</button>
+    </div>
+  </form>
+</dialog>
 
 <div class="aviso" id="aviso"><span class="bola"></span><span id="avisoTxt"></span></div>
 <div class="rolagem" id="rolagem" aria-hidden="true"><div class="polegar" id="polegar"></div></div>
@@ -1570,6 +1593,7 @@ function aplicarDados(d) {
   $('infoFw').textContent = d.fw + ' · ' + d.fwData;
   $('infoIp').textContent = d.ip;
   $('infoNuvem').textContent = (d.diag && d.diag.nuvem) || '--';
+  aplicarOta(d.diag ? d.diag.otaKB : undefined);
   $('infoUptime').textContent = duracao(d.uptimeSeg);
   if (d.histMin) $('infoHist').textContent = duracao(d.histMin * 60, true) + (d.histFlash ? ' · salvo no flash' : ' · só na RAM');
   else $('infoHist').textContent = 'indisponível';
@@ -1846,6 +1870,11 @@ function desenharSolucoes(s) {
     const ate = c.atual ? 'hoje' : semPonto(fmtData.format(new Date(c.fim * 1000)));
     const sub = c.minimo ? 'mínimo após ' + duracao(c.minimo - c.inicio, true) : (c.atual ? 'em uso' : 'reabastecida antes do mínimo');
     li.innerHTML = `<div class="datas"><div>${de} → ${ate}${c.atual ? '<span class="etiqueta verde">atual</span>' : ''}</div><div class="s">${sub}</div></div><div class="dur">${duracao(c.dur, true)}</div>`;
+    const bt = document.createElement('button');
+    bt.className = 'apagar';
+    bt.textContent = 'Apagar';
+    bt.addEventListener('click', () => apagarReabastecimento(c.inicio, de));
+    li.appendChild(bt);
     ul.appendChild(li);
   });
 }
@@ -1932,7 +1961,7 @@ function descreverEvento(e) {
     case EV.PANE_INICIO:
       if (!e.fim) return { ic: 'i-exclama', cor: 'red', tit: nomePane(e.id), sub: '<span class="vivo">Em andamento</span>' + (e.t ? ' há ' + duracao(agora - e.t, true) : '') };
       return { ic: 'i-exclama', cor: 'orange', tit: nomePane(e.id),
-        sub: (e.fim.extra ? 'Limpa manualmente após ' : e.id === 6 ? 'Reabastecido após ' : 'Normalizou sozinha após ') + duracao(e.fim.dur, true) + (e.fim.t ? ' · às ' + fmtHora.format(new Date(e.fim.t * 1000)) : '') };
+        sub: (e.fim.extra ? 'Limpa manualmente após ' : e.id === 6 ? 'Nível normalizado após ' : 'Normalizou sozinha após ') + duracao(e.fim.dur, true) + (e.fim.t ? ' · às ' + fmtHora.format(new Date(e.fim.t * 1000)) : '') };
     case EV.PANE_FIM:
       return { ic: 'i-check', cor: 'green', tit: nomePane(e.id) + ' — resolvida', sub: 'Durou ' + duracao(e.dur, true) + (e.extra ? ' · limpa manualmente' : '') };
     case EV.REINICIO: {
@@ -1947,7 +1976,7 @@ function descreverEvento(e) {
     case EV.MANUTENCAO:
       return { ic: 'i-chave', cor: 'orange', tit: e.extra ? 'Manutenção ativada' : 'Manutenção desativada', sub: e.extra ? 'Alertas e detecção de panes suspensos' : 'Monitoramento normal retomado' };
     case EV.REABASTECIMENTO:
-      return { ic: 'i-gota', cor: 'teal', tit: 'Reservatório reabastecido', sub: e.extra ? 'Registrado manualmente' : 'Detectado pelo sensor de nível' };
+      return { ic: 'i-gota', cor: 'teal', tit: 'Reservatório reabastecido', sub: e.extra ? 'Registrado manualmente' : 'Detectado pelo sensor (registro antigo)' };
     case EV.AJUSTES:
       return { ic: 'i-ajustes', cor: 'gray', tit: 'Ajustes alterados', sub: 'Parâmetros salvos pelo painel' };
     case EV.WIFI:
@@ -2084,6 +2113,106 @@ $('btnReabastecer').addEventListener('click', async () => {
   try { await postar('/api/action?cmd=reabastecido'); avisar('Reabastecimento registrado'); carregarSolucoes(); }
   catch (err) { avisar(err.message, true); }
 });
+
+// ---------------- Atualização de firmware (OTA) ----------------
+// O envio do arquivo só funciona pela rede local (http://horta.local): a nuvem não leva 1 MB.
+let otaKB = 0, otaEnviando = false;
+function aplicarOta(kb) {
+  otaKB = kb || 0;
+  const val = $('infoOta'), sub = $('infoOtaSub'), btn = $('btnOta');
+  if (kb === undefined) { val.textContent = '--'; sub.textContent = 'este firmware não tem OTA'; btn.hidden = true; return; }
+  if (!kb) {
+    val.textContent = 'Indisponível';
+    sub.textContent = 'o esquema de partição não tem duas áreas de aplicativo; grave pelo cabo com um esquema de 16 MB com OTA';
+    btn.hidden = true;
+    return;
+  }
+  val.textContent = 'Disponível';
+  sub.textContent = MODO_NUVEM ? 'o envio do arquivo só funciona pela rede local (horta.local); pela IDE, use a porta de rede “horta”'
+                               : 'pelo painel ou pela IDE do Arduino (porta de rede “horta”)';
+  btn.hidden = MODO_NUVEM;
+}
+function statusOta(txt, ok) { $('otaStatus').textContent = txt || ''; $('otaStatus').classList.toggle('ok', !!ok); }
+$('btnOta').addEventListener('click', () => {
+  $('otaArquivo').value = '';
+  $('otaBarra').hidden = true;
+  $('otaProgresso').style.width = '0';
+  statusOta('');
+  $('otaVersao').textContent = 'Versão atual: ' + (dados ? dados.fw : '--') + ' · espaço para o aplicativo: ' + Math.round(otaKB / 1024 * 10) / 10 + ' MB';
+  $('dlgOta').showModal();
+});
+$('otaCancelar').addEventListener('click', () => { if (!otaEnviando) $('dlgOta').close(); });
+$('dlgOta').addEventListener('cancel', e => { if (otaEnviando) e.preventDefault(); });
+$('otaArquivo').addEventListener('change', () => {
+  const f = $('otaArquivo').files[0];
+  statusOta('');
+  if (!f) return;
+  if (!/\.bin$/i.test(f.name)) statusOta('Escolha um arquivo .bin.');
+  else if (/merged|bootloader|partition/i.test(f.name)) statusOta('Esse arquivo inclui o bootloader ou as partições. Use o terminado em .ino.bin.');
+  else if (f.size < 100 * 1024) statusOta('O arquivo é pequeno demais para ser o aplicativo da horta.');
+  else if (f.size > otaKB * 1024) statusOta('O arquivo (' + Math.round(f.size / 1024) + ' KB) não cabe na partição (' + otaKB + ' KB).');
+});
+$('formOta').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = $('otaArquivo').files[0];
+  if (!f || $('otaStatus').textContent) return;
+  otaEnviando = true;
+  $('otaEnviar').disabled = $('otaCancelar').disabled = $('otaArquivo').disabled = true;
+  const fim = (txt, ok) => { statusOta(txt, ok); otaEnviando = false; $('otaEnviar').disabled = $('otaCancelar').disabled = $('otaArquivo').disabled = false; };
+  try {
+    statusOta('Conferindo o login…');
+    const a = await fetch('/api/ota/auth', { method: 'POST' });
+    if (a.status === 401) return fim('Login ou senha incorretos.');
+    if (!a.ok) return fim('A horta não aceitou o pedido (' + a.status + '). Este firmware tem OTA?');
+    $('otaBarra').hidden = false;
+    statusOta('Enviando…');
+    const resp = await new Promise(resolver => {
+      const x = new XMLHttpRequest();
+      x.open('POST', '/api/ota');
+      x.upload.onprogress = ev => {
+        if (!ev.lengthComputable) return;
+        $('otaProgresso').style.width = Math.round(ev.loaded / ev.total * 100) + '%';
+        statusOta(ev.loaded >= ev.total ? 'Gravando e verificando na horta…' : 'Enviando… ' + Math.round(ev.loaded / ev.total * 100) + '%');
+      };
+      x.onload = () => resolver({ status: x.status, texto: x.responseText });
+      x.onerror = () => resolver({ status: 0, texto: 'A conexão com a horta caiu durante o envio.' });
+      const fd = new FormData();
+      fd.append('firmware', f, f.name);
+      x.send(fd);
+    });
+    if (resp.status !== 200) return fim(resp.texto || 'Falha no envio (' + resp.status + ').');
+    // Reiniciou: espera a horta voltar e confere a versão
+    const antes = dados ? dados.fw : '';
+    const t0 = Date.now();
+    statusOta('Atualizado! Reiniciando a horta…', true);
+    await new Promise(r => setTimeout(r, 6000));
+    while (Date.now() - t0 < 120000) {
+      try {
+        const r = await fetch('/api/data', { cache: 'no-store' });
+        const d = r.ok ? await r.json() : null;
+        if (d && d.uptimeSeg < (Date.now() - t0) / 1000 + 15) {
+          $('otaProgresso').style.width = '100%';
+          statusOta('Pronto! Versão ' + d.fw + (d.fw === antes ? ' (a mesma de antes)' : '') + '. Recarregando…', true);
+          setTimeout(() => location.reload(), 2000);
+          return;
+        }
+      } catch (err) {}
+      await new Promise(r => setTimeout(r, 2000));
+    }
+    fim('A horta não voltou em 2 minutos. Confira a placa e o WiFi.');
+  } catch (err) { fim(err.message); }
+});
+
+// Apaga um reabastecimento registrado por engano (ex.: falsos registros do sensor de nível)
+async function apagarReabastecimento(inicio, rotulo) {
+  if (!confirm('Apagar o reabastecimento de ' + rotulo + '?\n\nO registro some da lista e das estatísticas. Não dá para desfazer.')) return;
+  try {
+    await postar('/api/action?cmd=apagarSolucao&ts=' + inicio);
+    avisar('Reabastecimento apagado');
+    carregarSolucoes(); carregarDados();
+    if (typeof carregarEventos === 'function') carregarEventos();
+  } catch (err) { avisar(err.message, true); }
+}
 
 // Reabastecimento que já aconteceu (a horta só sabia registrar "agora")
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -2224,15 +2353,15 @@ $('btnSalvar').addEventListener('click', async () => {
 // ================================================================
 // INSIGHTS (IA)
 // ================================================================
-// Gerados no GitHub Actions duas vezes por dia (manhã e noite) e gravados no Firebase.
+// Gerados no GitHub Actions três vezes por dia (manhã, tarde e noite) e gravados no Firebase.
 // O texto vem de uma IA: entra na página sempre como TEXTO (nunca como HTML).
 let insightsUltimo = null, insightsHistorico = null, insightAntigo = false;
 const ICONE_INS = { temperatura: 'i-termo', vazao: 'i-onda', agua: 'i-tanque', clima: 'i-sol', bomba: 'i-helice', culturas: 'i-gota', sistema: 'i-escudo', curiosidade: 'i-lua' };
 const COR_INS = { alerta: 'red', atencao: 'orange', info: 'blue' };
 const HUMOR_TXT = { bom: 'Tudo tranquilo', atencao: 'Pontos de atenção', alerta: 'Precisa de ação' };
 const SETA_INS = { subindo: ['↗', 'sobe'], estavel: ['→', ''], caindo: ['↘', 'desce'] };
-const NOME_TURNO = { manha: 'manhã', noite: 'noite' };
-const INSIGHT_VELHO_H = 20;
+const NOME_TURNO = { manha: 'manhã', tarde: 'tarde', noite: 'noite' };
+const INSIGHT_VELHO_H = 12;
 
 function elem(tag, cls, txt) {
   const e = document.createElement(tag);
@@ -2280,7 +2409,7 @@ function desenharInsights(d) {
     $('insHumorPonto').dataset.humor = 'bom';
     $('insHumor').textContent = 'Aguardando a primeira análise';
     $('insTurno').textContent = '';
-    $('insResumo').textContent = 'Os insights são gerados todos os dias, de manhã e à noite.';
+    $('insResumo').textContent = 'Os insights são gerados três vezes por dia: manhã, tarde e noite.';
     ['insCtx', 'listaInsights', 'listaAcoes'].forEach(i => { $(i).innerHTML = ''; });
     $('grupoInsights').hidden = $('grupoTend').hidden = $('cardAcoes').hidden = $('insVelho').hidden = true;
     $('insQuando').textContent = '';
@@ -2290,12 +2419,13 @@ function desenharInsights(d) {
   const humor = HUMOR_TXT[d.humor] ? d.humor : 'atencao';
   $('insHumorPonto').dataset.humor = humor;
   $('insHumor').textContent = HUMOR_TXT[humor];
-  $('insTurno').textContent = rotuloInsight(d);
+  // Aviso quando a geração parou (só para o mais recente)
+  const idadeH = (Date.now() + desvioRelogio - geradoEmMs(d)) / 3600000;
+  // A hora mostrada é a de quando a análise de fato foi gerada (o GitHub costuma atrasar o agendamento)
+  $('insTurno').textContent = rotuloInsight(d) + (geradoEmMs(d) && idadeH >= 0 && idadeH < 24 ? ' · há ' + duracao(idadeH * 3600, true) : '');
   $('insResumo').textContent = d.resumo || '';
   chipsInsight(d);
 
-  // Aviso quando a geração parou (só para o mais recente)
-  const idadeH = (Date.now() + desvioRelogio - geradoEmMs(d)) / 3600000;
   $('insVelho').hidden = insightAntigo || !(idadeH > INSIGHT_VELHO_H);
   if (!$('insVelho').hidden) $('insVelhoTxt').textContent = 'A última análise foi gerada há ' + duracao(idadeH * 3600, true) + '. Confira a execução agendada no GitHub (aba Actions).';
 
